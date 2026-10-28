@@ -64,6 +64,11 @@ struct TaskListScreen<Model: TaskListViewModeling>: View {
             .font(.title3)
 
             HStack {
+                customerPicker
+                Spacer()
+            }
+
+            HStack {
                 if model.overdueCount > 0 {
                     Label("\(model.overdueCount) overdue", systemImage: "clock.badge.exclamationmark")
                         .font(.headline)
@@ -84,6 +89,31 @@ struct TaskListScreen<Model: TaskListViewModeling>: View {
         .padding(.horizontal)
         .padding(.bottom, 8)
         .background(.bar)
+    }
+
+    private var customerPicker: some View {
+        Menu {
+            Button {
+                model.select(customer: nil)
+            } label: {
+                if model.selectedCustomer == nil { Label("All customers", systemImage: "checkmark") } else { Text("All customers") }
+            }
+            Divider()
+            ForEach(model.customers, id: \.self) { customer in
+                Button {
+                    model.select(customer: customer)
+                } label: {
+                    if model.selectedCustomer == customer { Label(customer, systemImage: "checkmark") } else { Text(customer) }
+                }
+            }
+        } label: {
+            Label(model.selectedCustomer ?? "All customers", systemImage: "line.3.horizontal.decrease.circle")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(model.selectedCustomer == nil ? Color(.secondarySystemFill) : Color.accentColor.opacity(0.15), in: Capsule())
+        }
+        .accessibilityIdentifier("customerFilter")
     }
 
     @ViewBuilder
@@ -108,6 +138,36 @@ struct TaskListScreen<Model: TaskListViewModeling>: View {
                 }
                 .padding(.top, 60)
             }
+            .refreshable { await model.refresh() }
+        case .loaded where model.isFilteredEmpty:
+            ScrollView {
+                ContentUnavailableView {
+                    Label("No tasks for \(model.selectedCustomer ?? "")", systemImage: "person.crop.circle.badge.questionmark")
+                } description: {
+                    Text("This customer has nothing scheduled on this day.")
+                } actions: {
+                    Button("Show all customers") { model.select(customer: nil) }.buttonStyle(.borderedProminent)
+                }
+                .padding(.top, 60)
+            }
+            .refreshable { await model.refresh() }
+        case .loaded where model.selectedCustomer != nil:
+            List {
+                ForEach(model.workOrders) { group in
+                    Section {
+                        ForEach(group.rows) { row in
+                            NavigationLink(value: row.id) { TaskRowView(row: row, showsWorkOrder: false) }
+                        }
+                    } header: {
+                        HStack {
+                            Text(group.reference)
+                            Spacer()
+                            Text(group.progress)
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
             .refreshable { await model.refresh() }
         case .loaded:
             List {
@@ -148,6 +208,8 @@ struct TaskListScreen<Model: TaskListViewModeling>: View {
 
 struct TaskRowView: View {
     let row: TaskRow
+    /// Off when a section header already names the work order and customer.
+    var showsWorkOrder = true
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 14) {
@@ -161,7 +223,9 @@ struct TaskRowView: View {
                     if row.isOverdue { Tag(text: "Overdue", color: .red) }
                     if row.isDone { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green) }
                 }
-                Text("\(row.workOrder) · \(row.customer)").font(.subheadline).foregroundStyle(.secondary)
+                if showsWorkOrder {
+                    Text("\(row.workOrder) · \(row.customer)").font(.subheadline).foregroundStyle(.secondary)
+                }
                 if row.isWaiting {
                     Label("Waiting on earlier step", systemImage: "hourglass").font(.caption).foregroundStyle(.secondary)
                 }

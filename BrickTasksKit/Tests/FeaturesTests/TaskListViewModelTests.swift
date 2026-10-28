@@ -201,3 +201,87 @@ struct TaskListViewModelTests {
         }
     }
 }
+
+@MainActor
+struct CustomerFilterTests {
+    private func tasks() -> [WorkTask] {
+        // wo_1 Halcyon Coffee at 07:00-09:00; wo_2 Tidewell Apparel at 06:00-10:00; wo_3 Halcyon Coffee at 11:00-13:00.
+        let tidewell = chain("wo_2", times: ["06:00", "08:30", "10:00"]).map { task in
+            WorkTask(id: task.id, workOrder: WorkOrder(id: "wo_2", reference: "WO-wo_2", customer: "Tidewell Apparel"),
+                     kind: task.kind, sequence: task.sequence, status: task.status, day: task.day, time: task.time,
+                     allowedActions: task.allowedActions, createdAt: task.createdAt)
+        }
+        return chain() + tidewell + chain("wo_3", times: ["11:00", "12:00", "13:00"])
+    }
+
+    @Test func listsCustomersForTheDayAlphabetically() async throws {
+        let h = try Harness(tasks: tasks())
+        let vm = h.list()
+        await running(vm, start: { await $0.start() }) {
+            await eventually { vm.phase == .loaded }
+            #expect(vm.customers == ["Halcyon Coffee", "Tidewell Apparel"])
+            #expect(vm.selectedCustomer == nil)
+            #expect(vm.workOrders.isEmpty)
+            #expect(vm.pending.count == 9)
+        }
+    }
+
+    @Test func selectingACustomerGroupsTheirTasksByWorkOrder() async throws {
+        let h = try Harness(tasks: tasks())
+        _ = try await h.api.complete(taskID: "wo_1_1")
+        let vm = h.list()
+        await running(vm, start: { await $0.start() }) {
+            await eventually { vm.phase == .loaded }
+            vm.select(customer: "Halcyon Coffee")
+
+            #expect(vm.workOrders.map(\.reference) == ["WO-wo_1", "WO-wo_3"])
+            #expect(vm.workOrders[0].rows.map(\.title) == ["Pick", "Pack", "Ship"])
+            #expect(vm.workOrders[0].progress == "1 of 3 done today")
+            #expect(vm.workOrders[1].progress == "0 of 3 done today")
+            #expect(vm.pending.allSatisfy { $0.customer == "Halcyon Coffee" })
+        }
+    }
+
+    @Test func overdueCountFollowsTheFilter() async throws {
+        let h = try Harness(tasks: tasks(), now: at("08:45"))
+        let vm = h.list()
+        await running(vm, start: { await $0.start() }) {
+            await eventually { vm.phase == .loaded }
+            #expect(vm.overdueCount == 4) // Halcyon pick, pack; Tidewell pick, pack
+            vm.select(customer: "Tidewell Apparel")
+            #expect(vm.overdueCount == 2)
+            vm.select(customer: nil)
+            #expect(vm.overdueCount == 4)
+        }
+    }
+
+    @Test func filterSurvivesDayChangeAndExplainsEmptyDays() async throws {
+        let h = try Harness(tasks: tasks() + chain("wo_9", day: today.adding(days: 1)))
+        let vm = h.list()
+        await running(vm, start: { await $0.start() }) {
+            await eventually { vm.phase == .loaded }
+            vm.select(customer: "Tidewell Apparel")
+            vm.showNextDay()
+            await eventually { vm.phase == .loaded }
+            #expect(vm.selectedCustomer == "Tidewell Apparel")
+            #expect(vm.isFilteredEmpty)
+            #expect(vm.customers == ["Halcyon Coffee"])
+            vm.select(customer: nil)
+            #expect(!vm.isFilteredEmpty)
+            #expect(vm.pending.count == 3)
+        }
+    }
+
+    @Test func worksOfflineFromSavedTasks() async throws {
+        let h = try Harness(tasks: tasks())
+        _ = try await h.repository.refreshDay(today)
+        await h.api.setOffline(true)
+        h.connectivity.set(online: false)
+        let vm = h.list()
+        await running(vm, start: { await $0.start() }) {
+            await eventually { vm.phase == .loaded }
+            vm.select(customer: "Halcyon Coffee")
+            #expect(vm.workOrders.count == 2)
+        }
+    }
+}

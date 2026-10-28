@@ -14,6 +14,13 @@ public protocol TaskListViewModeling: AnyObject, Observable {
     var pending: [TaskRow] { get }
     var done: [TaskRow] { get }
     var overdueCount: Int { get }
+    /// Customers with tasks on the selected day, for the filter picker.
+    var customers: [String] { get }
+    var selectedCustomer: String? { get }
+    /// The selected customer's tasks grouped by work order; empty when no customer is selected.
+    var workOrders: [WorkOrderGroup] { get }
+    /// A customer is selected but has nothing on this day, though the day has other tasks.
+    var isFilteredEmpty: Bool { get }
     var banner: Banner? { get }
     var isRefreshing: Bool { get }
     var selectedDate: Date { get }
@@ -25,6 +32,7 @@ public protocol TaskListViewModeling: AnyObject, Observable {
     func showPreviousDay()
     func showNextDay()
     func showToday()
+    func select(customer: String?)
     func show(date: Date)
     /// Re-evaluates time-based state (overdue). Called periodically by the view.
     func tick()
@@ -40,6 +48,13 @@ public enum TaskListPhase: Hashable, Sendable {
     case empty
     /// Nothing cached and the refresh failed. The banner says why; pull to refresh retries.
     case unavailable
+}
+
+public struct WorkOrderGroup: Identifiable, Hashable, Sendable {
+    public let id: String
+    public let reference: String
+    public let progress: String
+    public let rows: [TaskRow]
 }
 
 public struct TaskRow: Identifiable, Hashable, Sendable {
@@ -62,6 +77,7 @@ public final class TaskListViewModel: TaskListViewModeling {
     public private(set) var phase: TaskListPhase = .loading
     public private(set) var banner: Banner?
     public private(set) var isRefreshing = false
+    public private(set) var selectedCustomer: String?
     private var tasks: [WorkTask] = []
     private var lastSyncedAt: Date?
     private var isOnline = true
@@ -96,9 +112,41 @@ public final class TaskListViewModel: TaskListViewModeling {
     public var subtitle: String { format.absoluteDay(day) }
     public var isShowingToday: Bool { day == clock.today }
     public var selectedDate: Date { day.startDate(in: clock.timeZone) }
-    public var pending: [TaskRow] { tasks.filter { !$0.isDone }.map(row) }
-    public var done: [TaskRow] { tasks.filter(\.isDone).map(row) }
-    public var overdueCount: Int { tasks.filter(isOverdue).count }
+    public var pending: [TaskRow] { visibleTasks.filter { !$0.isDone }.map(row) }
+    public var done: [TaskRow] { visibleTasks.filter(\.isDone).map(row) }
+    /// Counts what's on screen, so it follows the customer filter.
+    public var overdueCount: Int { visibleTasks.filter(isOverdue).count }
+
+    public var customers: [String] {
+        Set(tasks.map(\.workOrder.customer)).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
+    public var workOrders: [WorkOrderGroup] {
+        guard selectedCustomer != nil else { return [] }
+        let grouped = Dictionary(grouping: visibleTasks, by: \.workOrder.id)
+        return grouped.values
+            .map { $0.sorted { $0.sequence < $1.sequence } }
+            // Earliest-due work order first, so the next thing to do is at the top.
+            .sorted { ($0[0].time, $0[0].workOrder.reference) < ($1[0].time, $1[0].workOrder.reference) }
+            .map { steps in
+                let done = steps.filter(\.isDone).count
+                return WorkOrderGroup(
+                    id: steps[0].workOrder.id,
+                    reference: steps[0].workOrder.reference,
+                    progress: "\(done) of \(steps.count) done today",
+                    rows: steps.map(row)
+                )
+            }
+    }
+
+    public var isFilteredEmpty: Bool {
+        selectedCustomer != nil && visibleTasks.isEmpty && !tasks.isEmpty
+    }
+
+    private var visibleTasks: [WorkTask] {
+        guard let selectedCustomer else { return tasks }
+        return tasks.filter { $0.workOrder.customer == selectedCustomer }
+    }
 
     // MARK: Intents
 
@@ -132,6 +180,8 @@ public final class TaskListViewModel: TaskListViewModeling {
     public func showPreviousDay() { go(to: day.adding(days: -1)) }
     public func showNextDay() { go(to: day.adding(days: 1)) }
     public func showToday() { go(to: clock.today) }
+    /// Kept across day changes: an operator working one customer's orders usually stays on them.
+    public func select(customer: String?) { selectedCustomer = customer }
     public func show(date: Date) { go(to: CalendarDay(containing: date, in: clock.timeZone)) }
     public func tick() { now = clock.now }
 
