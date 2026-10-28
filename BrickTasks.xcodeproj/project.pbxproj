@@ -1,0 +1,531 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04F7F4F93D6091C3F221DF4B /* Repository in Frameworks */ = {isa = PBXBuildFile; productRef = CCA4A35CFD80267D665167AB /* Repository */; };
+		15E4FB38B7024A6E97ECCA1D /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA927698A0B7A8C490464751 /* AppConfig.swift */; };
+		252B8B944399FA1BCE75DF52 /* Features in Frameworks */ = {isa = PBXBuildFile; productRef = BBA04B77F9165587C3A3067B /* Features */; };
+		2C8F245634F71CA8C08EB9B3 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B54485DED94BB495713C37B /* Components.swift */; };
+		39DE54459BEB840B15E2A513 /* TaskListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7AB6E468654175D90125557 /* TaskListScreen.swift */; };
+		52BFAEAC7985D91BE4156EBD /* TaskDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7045991F5179C5FDC3FC9A /* TaskDetailScreen.swift */; };
+		6B4E8355BDA5892518FF0CA8 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 21737ECEDBEC5ACC554EB127 /* Persistence */; };
+		948D9A57A004273D84A54450 /* OpenAPITaskClient in Frameworks */ = {isa = PBXBuildFile; productRef = 84B4EF5F7B298E4AEED5F607 /* OpenAPITaskClient */; };
+		94AB94EE4915BA0F859594C8 /* BrickTasksApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 362B329D221CCA7F6D55117E /* BrickTasksApp.swift */; };
+		9B656A3B2725BC2034B57C93 /* NetworkPathConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106CD5F4DDEB5B5B27134BF3 /* NetworkPathConnectivity.swift */; };
+		A79937E45265C6380B4D8BFD /* TaskSimulator in Frameworks */ = {isa = PBXBuildFile; productRef = B19538228B18B9ADF1C60D73 /* TaskSimulator */; };
+		B49EED1B48B6F3C76B15F55F /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE0B6E4591F3A7FB73D0E73 /* AppEnvironment.swift */; };
+		BD61AB0E84737CCCBC83E103 /* Networking in Frameworks */ = {isa = PBXBuildFile; productRef = EF01D6506BF87296C663F13E /* Networking */; };
+		CE9AB42B6A613DAFBB8D4C22 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 02548A9CCC5D2372DF05F140 /* Domain */; };
+		F8055A3E5F6EBBA49279FD4F /* SmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 738CE372E999AF46DD0FC988 /* SmokeUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1B8B9D824DE835302739BD73 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D75982E6D31D3920EB85E32 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 94185D1B400F7A59A99263A1;
+			remoteInfo = BrickTasks;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0D34F5025E18C0E520571E01 /* BrickTasks.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BrickTasks.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		106CD5F4DDEB5B5B27134BF3 /* NetworkPathConnectivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPathConnectivity.swift; sourceTree = "<group>"; };
+		2B54485DED94BB495713C37B /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		362B329D221CCA7F6D55117E /* BrickTasksApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickTasksApp.swift; sourceTree = "<group>"; };
+		4DE0B6E4591F3A7FB73D0E73 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		738CE372E999AF46DD0FC988 /* SmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeUITests.swift; sourceTree = "<group>"; };
+		8D7045991F5179C5FDC3FC9A /* TaskDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailScreen.swift; sourceTree = "<group>"; };
+		8E7EE67DF4E87F4B0579F9ED /* BrickTasksKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = BrickTasksKit; path = BrickTasksKit; sourceTree = SOURCE_ROOT; };
+		D2F0E9CADAA95960ACEF8470 /* BrickTasksUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BrickTasksUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA927698A0B7A8C490464751 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		E7AB6E468654175D90125557 /* TaskListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListScreen.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6F07C05E3BB15487944085DA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CE9AB42B6A613DAFBB8D4C22 /* Domain in Frameworks */,
+				BD61AB0E84737CCCBC83E103 /* Networking in Frameworks */,
+				948D9A57A004273D84A54450 /* OpenAPITaskClient in Frameworks */,
+				6B4E8355BDA5892518FF0CA8 /* Persistence in Frameworks */,
+				04F7F4F93D6091C3F221DF4B /* Repository in Frameworks */,
+				A79937E45265C6380B4D8BFD /* TaskSimulator in Frameworks */,
+				252B8B944399FA1BCE75DF52 /* Features in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		237B1E67DC053CB6D4C094A0 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				738CE372E999AF46DD0FC988 /* SmokeUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		51EF7AD429181B0FD575A595 /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				2B54485DED94BB495713C37B /* Components.swift */,
+				8D7045991F5179C5FDC3FC9A /* TaskDetailScreen.swift */,
+				E7AB6E468654175D90125557 /* TaskListScreen.swift */,
+			);
+			path = Screens;
+			sourceTree = "<group>";
+		};
+		607244825421FFD6E8497A9D /* Composition */ = {
+			isa = PBXGroup;
+			children = (
+				DA927698A0B7A8C490464751 /* AppConfig.swift */,
+				4DE0B6E4591F3A7FB73D0E73 /* AppEnvironment.swift */,
+			);
+			path = Composition;
+			sourceTree = "<group>";
+		};
+		89860052E9ACE5A298E9A33D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0D34F5025E18C0E520571E01 /* BrickTasks.app */,
+				D2F0E9CADAA95960ACEF8470 /* BrickTasksUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A4CD9FA363F8D759D2213B8A = {
+			isa = PBXGroup;
+			children = (
+				F05AB0528951AA5D7DCC0031 /* App */,
+				E1DDFDD2C012A64902EB5B24 /* Packages */,
+				237B1E67DC053CB6D4C094A0 /* UITests */,
+				89860052E9ACE5A298E9A33D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C844E5775C6E5985CA43DA82 /* Platform */ = {
+			isa = PBXGroup;
+			children = (
+				106CD5F4DDEB5B5B27134BF3 /* NetworkPathConnectivity.swift */,
+			);
+			path = Platform;
+			sourceTree = "<group>";
+		};
+		E1DDFDD2C012A64902EB5B24 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				8E7EE67DF4E87F4B0579F9ED /* BrickTasksKit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		F05AB0528951AA5D7DCC0031 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				362B329D221CCA7F6D55117E /* BrickTasksApp.swift */,
+				607244825421FFD6E8497A9D /* Composition */,
+				C844E5775C6E5985CA43DA82 /* Platform */,
+				51EF7AD429181B0FD575A595 /* Screens */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5223898155F07A20BFF7FCDA /* BrickTasksUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4869382B3C13845A0438A287 /* Build configuration list for PBXNativeTarget "BrickTasksUITests" */;
+			buildPhases = (
+				9B141002CB512345E60B7B6D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				66231CE3661B2FADED24458A /* PBXTargetDependency */,
+			);
+			name = BrickTasksUITests;
+			packageProductDependencies = (
+			);
+			productName = BrickTasksUITests;
+			productReference = D2F0E9CADAA95960ACEF8470 /* BrickTasksUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		94185D1B400F7A59A99263A1 /* BrickTasks */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 086343D822C2969EC2FAC622 /* Build configuration list for PBXNativeTarget "BrickTasks" */;
+			buildPhases = (
+				5807C18B957E81336815F3B3 /* Sources */,
+				6F07C05E3BB15487944085DA /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BrickTasks;
+			packageProductDependencies = (
+				02548A9CCC5D2372DF05F140 /* Domain */,
+				EF01D6506BF87296C663F13E /* Networking */,
+				84B4EF5F7B298E4AEED5F607 /* OpenAPITaskClient */,
+				21737ECEDBEC5ACC554EB127 /* Persistence */,
+				CCA4A35CFD80267D665167AB /* Repository */,
+				B19538228B18B9ADF1C60D73 /* TaskSimulator */,
+				BBA04B77F9165587C3A3067B /* Features */,
+			);
+			productName = BrickTasks;
+			productReference = 0D34F5025E18C0E520571E01 /* BrickTasks.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4D75982E6D31D3920EB85E32 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					5223898155F07A20BFF7FCDA = {
+						ProvisioningStyle = Automatic;
+						TestTargetID = 94185D1B400F7A59A99263A1;
+					};
+					94185D1B400F7A59A99263A1 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 4D915F77EC8039E10DDA3876 /* Build configuration list for PBXProject "BrickTasks" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = A4CD9FA363F8D759D2213B8A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E2C00F0B57387956BCA8EA70 /* XCLocalSwiftPackageReference "BrickTasksKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 89860052E9ACE5A298E9A33D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				94185D1B400F7A59A99263A1 /* BrickTasks */,
+				5223898155F07A20BFF7FCDA /* BrickTasksUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5807C18B957E81336815F3B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				15E4FB38B7024A6E97ECCA1D /* AppConfig.swift in Sources */,
+				B49EED1B48B6F3C76B15F55F /* AppEnvironment.swift in Sources */,
+				94AB94EE4915BA0F859594C8 /* BrickTasksApp.swift in Sources */,
+				2C8F245634F71CA8C08EB9B3 /* Components.swift in Sources */,
+				9B656A3B2725BC2034B57C93 /* NetworkPathConnectivity.swift in Sources */,
+				52BFAEAC7985D91BE4156EBD /* TaskDetailScreen.swift in Sources */,
+				39DE54459BEB840B15E2A513 /* TaskListScreen.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B141002CB512345E60B7B6D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F8055A3E5F6EBBA49279FD4F /* SmokeUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		66231CE3661B2FADED24458A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 94185D1B400F7A59A99263A1 /* BrickTasks */;
+			targetProxy = 1B8B9D824DE835302739BD73 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0010A95113A7F95D26456C66 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		6A55684767C092638AA83D1E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Brick Tasks";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.brickdynamics.takehome.BrickTasks;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		9FFD7CEF2595310B2E26B592 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A1BAD5A6B1D898C61B3A289D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.brickdynamics.takehome.BrickTasksUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BrickTasks;
+			};
+			name = Release;
+		};
+		B43F9C14B49860BAC50E3ABC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Brick Tasks";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.brickdynamics.takehome.BrickTasks;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		CACF6E5DDA575A6BEAC090AF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.brickdynamics.takehome.BrickTasksUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BrickTasks;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		086343D822C2969EC2FAC622 /* Build configuration list for PBXNativeTarget "BrickTasks" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6A55684767C092638AA83D1E /* Debug */,
+				B43F9C14B49860BAC50E3ABC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4869382B3C13845A0438A287 /* Build configuration list for PBXNativeTarget "BrickTasksUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CACF6E5DDA575A6BEAC090AF /* Debug */,
+				A1BAD5A6B1D898C61B3A289D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4D915F77EC8039E10DDA3876 /* Build configuration list for PBXProject "BrickTasks" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9FFD7CEF2595310B2E26B592 /* Debug */,
+				0010A95113A7F95D26456C66 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E2C00F0B57387956BCA8EA70 /* XCLocalSwiftPackageReference "BrickTasksKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = BrickTasksKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		02548A9CCC5D2372DF05F140 /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Domain;
+		};
+		21737ECEDBEC5ACC554EB127 /* Persistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Persistence;
+		};
+		84B4EF5F7B298E4AEED5F607 /* OpenAPITaskClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OpenAPITaskClient;
+		};
+		B19538228B18B9ADF1C60D73 /* TaskSimulator */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TaskSimulator;
+		};
+		BBA04B77F9165587C3A3067B /* Features */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Features;
+		};
+		CCA4A35CFD80267D665167AB /* Repository */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Repository;
+		};
+		EF01D6506BF87296C663F13E /* Networking */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Networking;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4D75982E6D31D3920EB85E32 /* Project object */;
+}

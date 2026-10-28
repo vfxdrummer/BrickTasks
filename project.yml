@@ -1,0 +1,59 @@
+name: BrickTasks
+options:
+  bundleIdPrefix: com.brickdynamics.takehome
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+packages:
+  BrickTasksKit:
+    path: BrickTasksKit
+targets:
+  BrickTasks:
+    type: application
+    platform: iOS
+    sources: [App]
+    dependencies:
+      - package: BrickTasksKit
+        products: [Domain, Networking, OpenAPITaskClient, Persistence, Repository, TaskSimulator, Features]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.brickdynamics.takehome.BrickTasks
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Brick Tasks
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
+  BrickTasksUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: BrickTasks
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.brickdynamics.takehome.BrickTasksUITests
+schemes:
+  BrickTasks:
+    build:
+      targets:
+        BrickTasks: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - BrickTasksUITests
+        - package: BrickTasksKit/DomainTests
+        - package: BrickTasksKit/NetworkingTests
+        - package: BrickTasksKit/OpenAPITaskClientTests
+        - package: BrickTasksKit/PersistenceTests
+        - package: BrickTasksKit/TaskSimulatorTests
+        - package: BrickTasksKit/RepositoryTests
+        - package: BrickTasksKit/FeaturesTests

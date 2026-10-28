@@ -78,3 +78,13 @@ public struct WorkTask: Identifiable, Hashable, Sendable {
         !isDone && dueDate(in: clock.timeZone) < clock.now
     }
 }
+
+extension WorkTask {
+    /// A copy with the fields an action can change.
+    public func with(status: TaskStatus, day: CalendarDay, allowedActions: Set<TaskActionKind>) -> WorkTask {
+        WorkTask(
+            id: id, workOrder: workOrder, kind: kind, sequence: sequence, status: status,
+            day: day, time: time, allowedActions: allowedActions, createdAt: createdAt
+        )
+    }
+}

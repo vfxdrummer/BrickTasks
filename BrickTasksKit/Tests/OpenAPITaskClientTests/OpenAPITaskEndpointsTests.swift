@@ -81,6 +81,20 @@ struct OpenAPITaskEndpointsTests {
         #expect(try jsonObject(StubURLProtocol.lastRequest?.body) == ["taskId": "task_1", "kind": "reschedule", "date": "2026-10-30"])
     }
 
+    @Test func resetPostsToResetAndAcceptsNoContent() async throws {
+        StubURLProtocol.stub(.http(status: 204, headers: [:], body: Data()))
+        try await makeEndpoints().resetSandbox()
+
+        let request = try #require(StubURLProtocol.lastRequest)
+        #expect(request.method == "POST")
+        #expect(request.url.path == "/c/abc123/reset")
+    }
+
+    @Test func resetOnExpiredSandboxIsNotFound() async throws {
+        StubURLProtocol.stub(.http(status: 404, body: json(#"{"error":"not_found","message":"Not found"}"#)))
+        await #expect(throws: APIError.notFound(message: "Not found")) { try await makeEndpoints().resetSandbox() }
+    }
+
     // MARK: Responses
 
     @Test func decodesARealSandboxPage() async throws {

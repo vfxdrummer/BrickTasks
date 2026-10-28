@@ -6,7 +6,7 @@ internal import OpenAPIURLSession
 
 /// `TaskEndpoints` backed by swift-openapi-generator. The only place in the app that knows
 /// about OpenAPI types; everything it returns or throws is a domain type or `APIError`.
-public struct OpenAPITaskEndpoints: TaskEndpoints {
+public struct OpenAPITaskEndpoints: TaskEndpoints, SandboxReset {
     private let client: Client
 
     /// `session` is injectable so tests can stub HTTP with a `URLProtocol`.
@@ -63,6 +63,15 @@ public struct OpenAPITaskEndpoints: TaskEndpoints {
         case .badRequest(let r): throw ErrorMapper.error(status: 400, body: try? r.body.json)
         case .notFound(let r): throw ErrorMapper.error(status: 404, body: try? r.body.json)
         case .conflict(let r): throw ErrorMapper.error(status: 409, body: try? r.body.json)
+        case .tooManyRequests(let r): throw .rateLimited(retryAfter: r.headers.retryAfter.map(Double.init))
+        case .default(let status, let r): throw ErrorMapper.error(status: status, body: try? r.body.json)
+        }
+    }
+
+    public func resetSandbox() async throws(APIError) {
+        switch try await call({ try await client.resetSandbox() }) {
+        case .noContent: return
+        case .notFound(let r): throw ErrorMapper.error(status: 404, body: try? r.body.json)
         case .tooManyRequests(let r): throw .rateLimited(retryAfter: r.headers.retryAfter.map(Double.init))
         case .default(let status, let r): throw ErrorMapper.error(status: status, body: try? r.body.json)
         }
