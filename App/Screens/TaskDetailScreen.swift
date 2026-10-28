@@ -25,6 +25,24 @@ struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
         content
             .navigationTitle(model.title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Confirmations take the title's place for a few seconds: inline they shifted rows
+                // under the operator's finger, and as an overlay they covered content or buttons.
+                ToolbarItem(placement: .principal) {
+                    if let confirmation = model.confirmation {
+                        Label(confirmation, systemImage: "checkmark.circle.fill")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(.green, in: Capsule())
+                            .transition(.opacity)
+                            .accessibilityIdentifier("confirmation")
+                    } else {
+                        Text(model.title).font(.headline)
+                    }
+                }
+            }
             .task { await model.start() }
             .modifier(TickModifier { model.tick() })
             .task(id: model.confirmation) {
@@ -95,22 +113,6 @@ struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { actions }
         // An overlay, not inline: content that jumps when a message appears or auto-hides
         // moves rows out from under the operator's finger.
-        // Top, and not hit-testable, so it never sits over the action buttons.
-        .overlay(alignment: .top) {
-            if let confirmation = model.confirmation {
-                Label(confirmation, systemImage: "checkmark.circle.fill")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
-                    .background(.green, in: Capsule())
-                    .shadow(radius: 6, y: 2)
-                    .padding(.top, 8)
-                    .allowsHitTesting(false)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .accessibilityIdentifier("confirmation")
-            }
-        }
         .animation(.easeInOut(duration: 0.25), value: model.confirmation)
         .confirmationDialog("Mark \(model.title.lowercased()) for \(model.workOrder) as done?", isPresented: $isConfirmingComplete, titleVisibility: .visible) {
             Button("Mark done") { Task { await model.completeTask() } }

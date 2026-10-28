@@ -21,6 +21,7 @@
 		A79937E45265C6380B4D8BFD /* TaskSimulator in Frameworks */ = {isa = PBXBuildFile; productRef = B19538228B18B9ADF1C60D73 /* TaskSimulator */; };
 		B49EED1B48B6F3C76B15F55F /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE0B6E4591F3A7FB73D0E73 /* AppEnvironment.swift */; };
 		BD61AB0E84737CCCBC83E103 /* Networking in Frameworks */ = {isa = PBXBuildFile; productRef = EF01D6506BF87296C663F13E /* Networking */; };
+		CDB18472148960C4E380DED3 /* DemoRecordingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AC95586C3A39EA33ED9D287 /* DemoRecordingUITests.swift */; };
 		CE9AB42B6A613DAFBB8D4C22 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 02548A9CCC5D2372DF05F140 /* Domain */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,7 @@
 		362B329D221CCA7F6D55117E /* BrickTasksApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickTasksApp.swift; sourceTree = "<group>"; };
 		4DE0B6E4591F3A7FB73D0E73 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		6B716E43A6A30AB5B4CA20BC /* BrickTasksUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrickTasksUITests.swift; sourceTree = "<group>"; };
+		8AC95586C3A39EA33ED9D287 /* DemoRecordingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRecordingUITests.swift; sourceTree = "<group>"; };
 		8D7045991F5179C5FDC3FC9A /* TaskDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailScreen.swift; sourceTree = "<group>"; };
 		8E7EE67DF4E87F4B0579F9ED /* BrickTasksKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = BrickTasksKit; path = BrickTasksKit; sourceTree = SOURCE_ROOT; };
 		D2F0E9CADAA95960ACEF8470 /* BrickTasksUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BrickTasksUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -70,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				6B716E43A6A30AB5B4CA20BC /* BrickTasksUITests.swift */,
+				8AC95586C3A39EA33ED9D287 /* DemoRecordingUITests.swift */,
 			);
 			path = UITests;
 			sourceTree = "<group>";
@@ -246,6 +249,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6208F378D90ABC2E196D399D /* BrickTasksUITests.swift in Sources */,
+				CDB18472148960C4E380DED3 /* DemoRecordingUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
