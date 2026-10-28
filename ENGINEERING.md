@@ -7,10 +7,12 @@ The rules every change in this repo follows. If a rule needs to change, change i
 SwiftUI + MVVM, with a repository between the ViewModels and the network. **Every layer talks to the next through a protocol.**
 
 ```
-View ─▶ ViewModel ─▶ TaskRepository ─┬─▶ TaskAPI ─────────▶ TaskEndpoints ◀── ThirdParty/OpenAPITaskClient
-                     (protocol)      │   (protocol, Domain)   (protocol, Networking)   (generated client + adapter)
-                                     └─▶ TaskStore (protocol) ◀── SwiftData implementation
+View<VM> ─▶ ViewModel ─▶ TaskRepository ─┬─▶ TaskAPI ──────────▶ TaskEndpoints ◀── ThirdParty/OpenAPITaskClient
+(generic over  (@Observable)  (protocol)  │   (protocol, Domain)    (protocol, Networking)   (generated client + adapter)
+ VM protocol)                             ├─▶ TaskStore ◀── Persistence (SwiftData)
+                                          └─▶ SandboxReset (optional) ◀── OpenAPITaskClient / TaskSimulator
 Domain: pure types, rules, and the ports (protocols) the outer layers implement
+App: composition root. The only place that picks concrete types.
 ```
 
 Code lives in a local Swift package, `BrickTasksKit`, with one target per layer, so the compiler enforces the boundaries:
@@ -20,13 +22,15 @@ Code lives in a local Swift package, `BrickTasksKit`, with one target per layer,
 | **Domain** | `WorkTask`, `CalendarDay`, `WallClockTime`, overdue rules, `WarehouseClock`, ports (`TaskAPI`), `APIError` | Import anything but Foundation |
 | **Networking** | `TaskEndpoints` port (one method = one HTTP request), `RemoteTaskAPI` (paging, de-duplication, read retries) | Import any third-party module or know HTTP details |
 | **ThirdParty/OpenAPITaskClient** | `openapi.yaml`, generated client, `OpenAPITaskEndpoints` adapter, wire→domain `TaskMapper`, `ErrorMapper` | Expose generated types (they're `package`/`internal`), retry, or make policy decisions |
-| **Persistence** *(next)* | `TaskStore` port implementation on SwiftData | Make network calls |
-| **Data** *(next)* | `TaskRepository`: local copy as source of truth, refresh policy, merging, action reconciliation | Know about SwiftUI or view state |
-| **App / Features** *(next)* | Views, `@Observable @MainActor` ViewModels, composition root that wires concrete types | Import networking or third-party modules in ViewModels |
+| **Persistence** | `SwiftDataTaskStore` (`TaskStore` on SwiftData, an actor with its own `ModelContext`) | Make network calls |
+| **Repository** | `TaskRepository` protocol and `OfflineFirstTaskRepository`: local copy as source of truth, refresh policy, day replacement, action reconciliation, change feed | Know about SwiftUI or view state |
+| **Features** | ViewModel protocols (`TaskListViewModeling`, `TaskDetailViewModeling`) and `@Observable @MainActor` implementations, presentation formatting | Import SwiftUI, networking or third-party modules |
+| **TaskSimulator** | `SimulatedTaskAPI`: in-memory server enforcing the real API's rules, with scriptable failures; `SampleData` | Ship in the live composition. Used only by tests and `-uiTesting` launches |
+| **App** (Xcode target) | SwiftUI views generic over ViewModel protocols, `AppEnvironment` composition root, `NWPathMonitor` connectivity | Contain business logic |
 
 ### Rules
 - **Third-party code lives in `Sources/ThirdParty/<Name>/`**, in its own target, behind a protocol the app owns. It's the only target allowed to import that dependency. Its imports are `internal`, so its types can't leak. Swapping the library means rewriting one adapter target.
-- **Protocols at every boundary.** Each layer depends on a protocol for the next (`TaskRepository`, `TaskAPI`, `TaskEndpoints`, `TaskStore`, `WarehouseClock`, `Connectivity`, `Sleeper`). Concrete types are chosen only in the composition root. Inject everything through initializers; no singletons, no `.shared`.
+- **Protocols at every boundary.** Each layer depends on a protocol for the next (`TaskRepository`, `TaskAPI`, `TaskEndpoints`, `TaskStore`, `SandboxReset`, `WarehouseClock`, `Connectivity`, `Sleeper`), and views are generic over ViewModel protocols. Concrete types are chosen only in the composition root. Inject everything through initializers; no singletons, no `.shared`.
 - **Wire types never leave their adapter.** Generated `Components.Schemas.*` → domain happens in `TaskMapper`, which is unit tested.
 - **Time is injected.** Anything that needs "now" or "today" takes a `WarehouseClock`. Never call `Date()` in logic.
 - **Swift Concurrency only.** `async/await` with typed `throws(APIError)` at the ports. No Combine, no completion handlers. ViewModels are `@MainActor`. Swift 6 language mode.
@@ -47,7 +51,8 @@ Code lives in a local Swift package, `BrickTasksKit`, with one target per layer,
 ## 3. Offline & sync
 
 - **The local store is the source of truth for reads.** Screens render cached data immediately, then refresh.
-- **Refreshing a day replaces that day.** After a successful full fetch of date D, any cached task dated D that is missing from the result is refetched by id, or dropped if the server returns 404. Tasks get rescheduled away by other people.
+- **Refreshing a day replaces that day.** After a successful full fetch of date D, cached tasks dated D that are missing from the result are dropped in the same save. They were rescheduled away or deleted, and they come back when their new day is fetched. (Not refetched one by one: that costs a request per task against a 10 req/s limit.)
+- **`/reset` clears the whole store.** Ids survive but every date and status changes.
 - **Upsert by id, always.** Ids are stable while dates and statuses change, including after `/reset`.
 - **Track `lastSyncedAt` per day**, and show it whenever the data might be stale.
 - **Actions (complete / reschedule) are online-only.** No offline queue: the brief rules it out. When offline, the buttons are disabled and the screen says why.
@@ -57,7 +62,7 @@ Code lives in a local Swift package, `BrickTasksKit`, with one target per layer,
 
 ## 4. Domain rules
 
-- `date` + `time` are warehouse wall-clock time with no offset. They're combined into a `dueDate` using the injected `Clock.timeZone`. (Assumption: device timezone = warehouse timezone. This is documented in the README.)
+- `date` + `time` are warehouse wall-clock time with no offset. They're combined into a `dueDate` using the injected `WarehouseClock.timeZone`. (Assumption: device timezone = warehouse timezone. This is documented in the README.)
 - **Overdue** = `status != .done && dueDate < clock.now`.
 - "Today" = the calendar day of `clock.now` in `clock.timeZone`.
 
@@ -71,16 +76,19 @@ No layer merges without tests. Use **Swift Testing** (`@Test`, `#expect`) for un
 | **Networking** | Fake `TaskEndpoints` + recording `Sleeper` | Pagination loop, offsets advance by items returned, dedupe, empty-page stop, page cap, 429 retry rules, actions never retried |
 | **ThirdParty adapter** | `URLProtocol` stub + real captured fixtures, no real network | Exact URL/query/body for every endpoint, every status → `APIError`, `Retry-After`, CDN HTML errors, transport error split, tolerant decoding |
 | **Store** | In-memory store instance | Upsert by id, query by day, a reschedule moves a task between days, persisting `lastSyncedAt` |
-| **Repository** | Fake `TaskAPI` + in-memory store | Cache-first read, day replacement/eviction, offline returns cache + stale flag, action → work-order refetch, 409 / timeout reconciliation, no action attempted while offline |
-| **ViewModel** | Fake repository, fixed `Clock`, fake `Connectivity` | State transitions (loading → loaded / empty / error), offline banner, button enablement from `allowedActions`, error messages shown to the user, date navigation |
-| **UI** | XCUITest with app launched against a stubbed backend (launch argument) | Happy path: list → detail → complete; reschedule; offline shows cache and disables actions |
+| **TaskSimulator** | Pure unit tests | It behaves like the real server: sequencing, 409 messages, reschedule keeps time, failures before/after applying, reset |
+| **Repository** | `SimulatedTaskAPI` + real in-memory SwiftData store | Cache-first read, day replacement/eviction, offline keeps cache, action → work-order refetch, 409 / lost-response reconciliation, never retries or queues actions, reset, change feed |
+| **ViewModel** | Real repository over `SimulatedTaskAPI` + in-memory store, fixed clock, fake `Connectivity` | State transitions (loading → loaded / empty / unavailable), offline banner, button enablement and reasons, plain-language errors, day navigation, overdue ticking, customer filter, double-tap guard |
+| **UI** | XCUITest, app launched with `-uiTesting -time 12:00` on the simulator server | Overdue at a glance, complete with confirmation, cancel, blocked step, reschedule across days, offline relaunch, offline with nothing saved, customer filter |
+
+ViewModel tests use the real repository, not a fake. A fake repository would have to re-implement reconciliation to be useful. Faking at the network edge tests what the operator actually sees, and stays fast (the whole package suite runs in under a second).
 
 ### Test rules
-- Tests never hit the real sandbox. One opt-in smoke test target may, behind an env var, and it's excluded from the default scheme.
-- Each fake lives in a shared `TestSupport` folder and records calls, so tests assert on behavior and not just on return values.
+- Tests never hit the real sandbox.
+- Fakes record calls (`SimulatedTaskAPI.calls`, `FakeTaskEndpoints.calls`, `RecordingSleeper.sleeps`), so tests assert on behavior and not just on return values. The shared fake server is the `TaskSimulator` target; per-layer fakes live in that layer's test target.
 - Fixed `Clock` in every test that touches time. A test that depends on the real date is a bug.
 - New bug → write a failing test first, then fix it.
-- `xcodebuild test` must be green before every commit.
+- `xcodebuild test -scheme BrickTasks` (package tests on iOS + UI tests) must be green before every commit. `swift test` in `BrickTasksKit` runs the package tests on macOS in about a second.
 
 ## 6. Code style
 - Match the surrounding code. Small types, one responsibility each.
@@ -102,3 +110,4 @@ Keep this list current; it feeds the README's "surprises" section.
 10. `GET /actions` → 405. There's no action history to read back.
 11. Tasks can be due at `00:00`, so they're overdue a minute into their own day.
 12. Timestamps carry fractional seconds (`…:49.125Z`), and swift-openapi-runtime's default ISO 8601 transcoder rejects them.
+13. The brief says tasks carry "instructions and information for Operators", but the Task schema has no such field.
