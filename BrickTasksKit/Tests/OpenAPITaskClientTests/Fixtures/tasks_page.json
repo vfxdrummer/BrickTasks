@@ -1,0 +1,289 @@
+{
+    "items": [
+        {
+            "id": "task_GQMTYW593YA93B3Y3XFDXHGHE1",
+            "workOrder": {
+                "id": "wo_KZ71EBMA9DJHG70E6XYXMRNB1T",
+                "reference": "WO-10456",
+                "customer": "Halcyon Coffee"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "00:00",
+            "allowedActions": [
+                "complete",
+                "reschedule"
+            ],
+            "createdAt": "2026-10-27T09:32:00.000Z"
+        },
+        {
+            "id": "task_721TJ03A3CAQND5N8W16RC5V04",
+            "workOrder": {
+                "id": "wo_60QEMJSVEDTJW8VAJYZEJNM32W",
+                "reference": "WO-10458",
+                "customer": "Marlow Home Goods"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "done",
+            "date": "2026-10-28",
+            "time": "00:00",
+            "allowedActions": [],
+            "createdAt": "2026-10-27T06:38:00.000Z"
+        },
+        {
+            "id": "task_HAH8GHAN8Q40P089QND6V716J0",
+            "workOrder": {
+                "id": "wo_60QEMJSVEDTJW8VAJYZEJNM32W",
+                "reference": "WO-10458",
+                "customer": "Marlow Home Goods"
+            },
+            "kind": "pack",
+            "sequence": 2,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "00:30",
+            "allowedActions": [
+                "complete",
+                "reschedule"
+            ],
+            "createdAt": "2026-10-27T11:04:00.000Z"
+        },
+        {
+            "id": "task_VE0CMA6KJPQ56B07J813VR7QA6",
+            "workOrder": {
+                "id": "wo_6A9Z3DYCYQXZH7VDV2NJ9B5PC2",
+                "reference": "WO-10411",
+                "customer": "Cobalt Cycling"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "09:00",
+            "allowedActions": [
+                "complete",
+                "reschedule"
+            ],
+            "createdAt": "2026-10-27T14:51:00.000Z"
+        },
+        {
+            "id": "task_XD17XMQ9SZWSGPC53KHVMAGVMW",
+            "workOrder": {
+                "id": "wo_KP0FMKQQQMCD6B0ZBPSQJVZ80D",
+                "reference": "WO-10409",
+                "customer": "Marlow Home Goods"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "done",
+            "date": "2026-10-28",
+            "time": "10:00",
+            "allowedActions": [],
+            "createdAt": "2026-10-26T12:58:00.000Z"
+        },
+        {
+            "id": "task_Q0Q6QSZH8CS5H2Q5PPM37M5ZSB",
+            "workOrder": {
+                "id": "wo_SA0ZBXAYZSM2M3RPSDX29QN74V",
+                "reference": "WO-10459",
+                "customer": "Juniper & Vale"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "10:00",
+            "allowedActions": [
+                "complete",
+                "reschedule"
+            ],
+            "createdAt": "2026-10-26T12:42:00.000Z"
+        },
+        {
+            "id": "task_E7YXGFB4QNYX4TE1QBGDFNEXE0",
+            "workOrder": {
+                "id": "wo_XTAKF90YTCH89BTW9HKKJT602H",
+                "reference": "WO-10460",
+                "customer": "Tidewell Apparel"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "10:00",
+            "allowedActions": [
+                "complete",
+                "reschedule"
+            ],
+            "createdAt": "2026-10-27T07:35:00.000Z"
+        },
+        {
+            "id": "task_HF30PR22TBSS1PHNCE0C5H8JWJ",
+            "workOrder": {
+                "id": "wo_6A9Z3DYCYQXZH7VDV2NJ9B5PC2",
+                "reference": "WO-10411",
+                "customer": "Cobalt Cycling"
+            },
+            "kind": "pack",
+            "sequence": 2,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "10:30",
+            "allowedActions": [
+                "reschedule"
+            ],
+            "createdAt": "2026-10-26T12:07:00.000Z"
+        },
+        {
+            "id": "task_C1TAP4S8XV9CAXMWFWCVCHA9JW",
+            "workOrder": {
+                "id": "wo_GHQ9KCZKSMV4KZRNS7G0AK6ZVD",
+                "reference": "WO-10410",
+                "customer": "Brightwater Skincare"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "done",
+            "date": "2026-10-28",
+            "time": "10:45",
+            "allowedActions": [],
+            "createdAt": "2026-10-27T10:22:00.000Z"
+        },
+        {
+            "id": "task_MK264PQ0BZCAY5T7RH4YEAFPTG",
+            "workOrder": {
+                "id": "wo_GHQ9KCZKSMV4KZRNS7G0AK6ZVD",
+                "reference": "WO-10410",
+                "customer": "Brightwater Skincare"
+            },
+            "kind": "pack",
+            "sequence": 2,
+            "status": "done",
+            "date": "2026-10-28",
+            "time": "12:00",
+            "allowedActions": [],
+            "createdAt": "2026-10-27T11:42:00.000Z"
+        },
+        {
+            "id": "task_Y4D4MPSBQQ4VRF7H2GEWNKJKZK",
+            "workOrder": {
+                "id": "wo_6A9Z3DYCYQXZH7VDV2NJ9B5PC2",
+                "reference": "WO-10411",
+                "customer": "Cobalt Cycling"
+            },
+            "kind": "ship",
+            "sequence": 3,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "13:15",
+            "allowedActions": [
+                "reschedule"
+            ],
+            "createdAt": "2026-10-26T11:15:00.000Z"
+        },
+        {
+            "id": "task_4T9353DJ2PPP251WGC9EH4KE78",
+            "workOrder": {
+                "id": "wo_TTS1JSK12389FD3H1W4BH2KKAD",
+                "reference": "WO-10412",
+                "customer": "Saffron Pantry"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "done",
+            "date": "2026-10-28",
+            "time": "13:15",
+            "allowedActions": [],
+            "createdAt": "2026-10-27T08:29:00.000Z"
+        },
+        {
+            "id": "task_XDJGAET0TY5DGYX2YYBGS8Q3J1",
+            "workOrder": {
+                "id": "wo_GHQ9KCZKSMV4KZRNS7G0AK6ZVD",
+                "reference": "WO-10410",
+                "customer": "Brightwater Skincare"
+            },
+            "kind": "ship",
+            "sequence": 3,
+            "status": "done",
+            "date": "2026-10-28",
+            "time": "13:30",
+            "allowedActions": [],
+            "createdAt": "2026-10-25T07:11:00.000Z"
+        },
+        {
+            "id": "task_NY7NYFXYC2EXZYN9GM41GD722C",
+            "workOrder": {
+                "id": "wo_TTS1JSK12389FD3H1W4BH2KKAD",
+                "reference": "WO-10412",
+                "customer": "Saffron Pantry"
+            },
+            "kind": "pack",
+            "sequence": 2,
+            "status": "done",
+            "date": "2026-10-28",
+            "time": "15:45",
+            "allowedActions": [],
+            "createdAt": "2026-10-25T06:55:00.000Z"
+        },
+        {
+            "id": "task_65X6MZDXZQJSHCVMBFHA0WKTXQ",
+            "workOrder": {
+                "id": "wo_TTS1JSK12389FD3H1W4BH2KKAD",
+                "reference": "WO-10412",
+                "customer": "Saffron Pantry"
+            },
+            "kind": "ship",
+            "sequence": 3,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "18:00",
+            "allowedActions": [
+                "complete",
+                "reschedule"
+            ],
+            "createdAt": "2026-10-26T07:07:00.000Z"
+        },
+        {
+            "id": "task_9YSF2VT5M82DT3JA91WZYA3T9J",
+            "workOrder": {
+                "id": "wo_60QEMJSVEDTJW8VAJYZEJNM32W",
+                "reference": "WO-10458",
+                "customer": "Marlow Home Goods"
+            },
+            "kind": "ship",
+            "sequence": 3,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "23:00",
+            "allowedActions": [
+                "reschedule"
+            ],
+            "createdAt": "2026-10-26T13:42:00.000Z"
+        },
+        {
+            "id": "task_BT0RY3F00A9SHG0Z4F328J8HX9",
+            "workOrder": {
+                "id": "wo_Q71NTMWTMZW73JJYPQ5D019849",
+                "reference": "WO-10457",
+                "customer": "Cobalt Cycling"
+            },
+            "kind": "pick",
+            "sequence": 1,
+            "status": "pending",
+            "date": "2026-10-28",
+            "time": "23:59",
+            "allowedActions": [
+                "complete",
+                "reschedule"
+            ],
+            "createdAt": "2026-10-26T10:08:00.000Z"
+        }
+    ],
+    "total": 17,
+    "offset": 0,
+    "limit": 50
+}

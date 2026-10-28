@@ -1,0 +1,248 @@
+openapi: "3.1.0"
+info:
+  title: Brick Dynamics Task API
+  version: "1.0.0"
+  description: |
+    Hand-written from api.pdf and checked against the live sandbox (2026-10-28).
+    The vendor publishes no spec. Where the PDF and the server disagree, this file
+    follows the server. See ENGINEERING.md §7.
+
+    Encoding choices:
+    - Request bodies forbid extra properties: the server rejects unknown fields with 400.
+    - Response objects allow extra properties, and kind/status/action enums are "open"
+      (anyOf a known enum or any string), so a new value from the server
+      doesn't fail decoding of a whole page.
+servers:
+  - url: https://mobile-takehome-api.brick-takehome.workers.dev/c/4w14ybad4z111yo77btq
+    description: Personal sandbox (expires ~2026-11-02)
+
+paths:
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: List tasks, paginated.
+      parameters:
+        - name: date
+          in: query
+          schema: { $ref: "#/components/schemas/CalendarDate" }
+        - name: workOrderId
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/KnownTaskStatus" }
+        - name: order
+          in: query
+          schema: { $ref: "#/components/schemas/TaskOrder" }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          description: Values above 50 are clamped to 50. Values of 0 or less are rejected with 400.
+          schema: { type: integer, minimum: 1, default: 20 }
+      responses:
+        "200":
+          description: A page of tasks.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaskPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        default: { $ref: "#/components/responses/UnexpectedError" }
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      summary: One task.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The task.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Task" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        default: { $ref: "#/components/responses/UnexpectedError" }
+
+  /actions:
+    post:
+      operationId: createAction
+      summary: Complete or reschedule a task. Not idempotent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActionRequest" }
+      responses:
+        "201":
+          description: The action was applied. The body is the action record, not the updated task.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionRecord" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The task does not currently accept that action. This includes repeating a complete that already succeeded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/APIError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        default: { $ref: "#/components/responses/UnexpectedError" }
+
+  /reset:
+    post:
+      operationId: resetSandbox
+      summary: Sandbox only. Regenerates data anchored to today. Ids are kept; dates and statuses are reset.
+      responses:
+        "204": { description: Reset. }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        default: { $ref: "#/components/responses/UnexpectedError" }
+
+components:
+  schemas:
+    CalendarDate:
+      type: string
+      description: Warehouse-local calendar day, YYYY-MM-DD. Kept as a string; the Domain mapper parses it.
+      pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    WallClockTime:
+      type: string
+      description: Warehouse-local time of day, HH:MM, 24-hour. No timezone.
+      pattern: "^\\d{2}:\\d{2}$"
+
+    KnownTaskKind:
+      type: string
+      enum: [pick, pack, ship]
+    TaskKind:
+      anyOf:
+        - $ref: "#/components/schemas/KnownTaskKind"
+        - type: string
+    KnownTaskStatus:
+      type: string
+      enum: [pending, done]
+    TaskStatus:
+      anyOf:
+        - $ref: "#/components/schemas/KnownTaskStatus"
+        - type: string
+    KnownActionKind:
+      type: string
+      enum: [complete, reschedule]
+    ActionKind:
+      anyOf:
+        - $ref: "#/components/schemas/KnownActionKind"
+        - type: string
+    TaskOrder:
+      type: string
+      enum: [date, -date, createdAt, -createdAt]
+
+    WorkOrder:
+      type: object
+      required: [id, reference, customer]
+      properties:
+        id: { type: string }
+        reference: { type: string }
+        customer: { type: string }
+
+    Task:
+      type: object
+      required: [id, workOrder, kind, sequence, status, date, time, allowedActions, createdAt]
+      properties:
+        id: { type: string }
+        workOrder: { $ref: "#/components/schemas/WorkOrder" }
+        kind: { $ref: "#/components/schemas/TaskKind" }
+        sequence: { type: integer, minimum: 1 }
+        status: { $ref: "#/components/schemas/TaskStatus" }
+        date: { $ref: "#/components/schemas/CalendarDate" }
+        time: { $ref: "#/components/schemas/WallClockTime" }
+        allowedActions:
+          type: array
+          items: { $ref: "#/components/schemas/ActionKind" }
+        createdAt: { type: string, format: date-time }
+
+    TaskPage:
+      type: object
+      required: [items, total, offset, limit]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Task" }
+        total: { type: integer }
+        offset: { type: integer }
+        limit: { type: integer }
+
+    CompleteAction:
+      type: object
+      additionalProperties: false
+      required: [taskId, kind]
+      properties:
+        taskId: { type: string }
+        kind: { type: string, enum: [complete] }
+    RescheduleAction:
+      type: object
+      additionalProperties: false
+      required: [taskId, kind, date]
+      properties:
+        taskId: { type: string }
+        kind: { type: string, enum: [reschedule] }
+        date: { $ref: "#/components/schemas/CalendarDate" }
+    ActionRequest:
+      oneOf:
+        - $ref: "#/components/schemas/CompleteAction"
+        - $ref: "#/components/schemas/RescheduleAction"
+      discriminator:
+        propertyName: kind
+        mapping:
+          complete: "#/components/schemas/CompleteAction"
+          reschedule: "#/components/schemas/RescheduleAction"
+
+    ActionRecord:
+      type: object
+      required: [id, taskId, kind, appliedAt]
+      properties:
+        id: { type: string }
+        taskId: { type: string }
+        kind: { $ref: "#/components/schemas/ActionKind" }
+        date:
+          $ref: "#/components/schemas/CalendarDate"
+          description: Present on reschedule records only.
+        appliedAt: { type: string, format: date-time }
+
+    APIError:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string, description: "Machine code, e.g. invalid_request, not_found, action_not_allowed." }
+        message: { type: string }
+
+  responses:
+    BadRequest:
+      description: Malformed request, unknown field or parameter, or an invalid date.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/APIError" }
+    NotFound:
+      description: No such task, or an unknown or expired sandbox URL. Every path returns 404 once the URL expires.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/APIError" }
+    RateLimited:
+      description: Over 10 req/s (burst 30).
+      headers:
+        Retry-After:
+          description: Seconds to wait. Observed value is "1".
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/APIError" }
+    UnexpectedError:
+      description: Anything else.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/APIError" }
