@@ -4,7 +4,7 @@ A native iOS app (SwiftUI, iOS 17+) that warehouse operators use to work through
 
 **Run it:** open `BrickTasks.xcodeproj` in Xcode 16 or newer, choose an iPhone simulator, and press ⌘R. Xcode asks once to **Trust & Enable** the `OpenAPIGenerator` build plugin, which generates the API client from the spec at build time. The app talks to the sandbox in `App/Composition/AppConfig.swift`.
 
-**Test it:** ⌘U runs everything: 150 package tests on iOS and 8 UI tests. From the command line:
+**Test it:** ⌘U runs everything: 150 package tests on iOS and 10 UI tests (plus the demo-recording test, which is skipped unless asked for). From the command line:
 
 ```bash
 xcodebuild test -project BrickTasks.xcodeproj -scheme BrickTasks -destination 'platform=iOS Simulator,name=iPhone 15 Pro' -skipPackagePluginValidation
@@ -16,7 +16,7 @@ cd BrickTasksKit && swift test
 
 The second command runs the package tests on macOS in about a second.
 
-**Demo:** `demo.mp4`, included in the zip. It covers the live sandbox flow, then an offline relaunch.
+**Demo:** `demo.mp4` (53s), included in the zip: complete → reschedule → customer filter → offline relaunch → an unloaded day offline. It's recorded on the app's built-in simulated server with the clock pinned to 12:00, so it's repeatable. `UITests/DemoRecordingUITests.swift` drives it (run it with `TEST_RUNNER_BRICK_DEMO=1`).
 
 **Sandbox reset:** ⋯ menu → *Reset sandbox data*.
 
