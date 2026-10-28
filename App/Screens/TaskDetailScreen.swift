@@ -4,14 +4,20 @@ import SwiftUI
 /// Creates the detail model once per pushed screen, so parent re-renders don't reset its state.
 struct TaskDetailHost<Model: TaskDetailViewModeling>: View {
     @State private var model: Model
+    let makeStep: @MainActor (String) -> Model
 
-    init(make: @MainActor () -> Model) { _model = State(initialValue: make()) }
+    init(make: @MainActor () -> Model, makeStep: @escaping @MainActor (String) -> Model) {
+        _model = State(initialValue: make())
+        self.makeStep = makeStep
+    }
 
-    var body: some View { TaskDetailScreen(model: model) }
+    var body: some View { TaskDetailScreen(model: model, makeStep: makeStep) }
 }
 
 struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
     let model: Model
+    /// Builds the screen for another step in the same work order.
+    let makeStep: @MainActor (String) -> Model
     @State private var isConfirmingComplete = false
     @State private var isRescheduling = false
 
@@ -55,12 +61,6 @@ struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
-                    if let confirmation = model.confirmation {
-                        Label(confirmation, systemImage: "checkmark.circle.fill")
-                            .font(.headline)
-                            .foregroundStyle(.green)
-                            .accessibilityIdentifier("confirmation")
-                    }
                     if let banner = model.banner { BannerView(banner: banner) }
                     HStack {
                         Tag(text: model.statusText, color: statusColor).accessibilityIdentifier("status")
@@ -79,7 +79,13 @@ struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
                     if step.isCurrent {
                         StepRowView(step: step)
                     } else {
-                        NavigationLink(value: step.id) { StepRowView(step: step) }
+                        // Pushes the view directly rather than by id: a value link whose id is already
+                        // further back in the stack renders as permanently selected.
+                        NavigationLink {
+                            TaskDetailHost(make: { makeStep(step.id) }, makeStep: makeStep)
+                        } label: {
+                            StepRowView(step: step)
+                        }
                     }
                 }
             }
@@ -87,6 +93,23 @@ struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
         .listStyle(.insetGrouped)
         .refreshable { await model.refresh() }
         .safeAreaInset(edge: .bottom, spacing: 0) { actions }
+        // An overlay, not inline: content that jumps when a message appears or auto-hides
+        // moves rows out from under the operator's finger.
+        .overlay(alignment: .bottom) {
+            if let confirmation = model.confirmation {
+                Label(confirmation, systemImage: "checkmark.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(.green, in: Capsule())
+                    .shadow(radius: 6, y: 2)
+                    .padding(.bottom, 24)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .accessibilityIdentifier("confirmation")
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: model.confirmation)
         .confirmationDialog("Mark \(model.title.lowercased()) for \(model.workOrder) as done?", isPresented: $isConfirmingComplete, titleVisibility: .visible) {
             Button("Mark done") { Task { await model.completeTask() } }
         } message: {

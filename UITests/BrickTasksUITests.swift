@@ -135,4 +135,37 @@ final class BrickTasksUITests: XCTestCase {
         app.buttons["All customers"].tap()
         XCTAssertTrue(row("Pick, WO-10402").waitForExistence(timeout: 5))
     }
+
+    /// Regression: the "Marked done." message used to sit inline and auto-hide after 4 seconds,
+    /// shifting every row up under the operator's finger.
+    func testRowsDoNotMoveWhenTheConfirmationHides() {
+        launch("-resetStore")
+        XCTAssertTrue(row("Pack, WO-10401").waitForExistence(timeout: 10))
+        row("Pack, WO-10401").tap()
+        app.buttons["completeButton"].tap()
+        XCTAssertTrue(app.buttons["Mark done"].waitForExistence(timeout: 5))
+        app.buttons["Mark done"].tap()
+        XCTAssertTrue(app.staticTexts["confirmation"].waitForExistence(timeout: 5))
+
+        let ship = row("3. Ship")
+        XCTAssertTrue(ship.waitForExistence(timeout: 5))
+        let before = ship.frame
+        let hidden = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["confirmation"])
+        wait(for: [hidden], timeout: 8)
+        XCTAssertEqual(ship.frame, before)
+    }
+
+    /// Regression: tapping a step opens that step, and the step you came from isn't left highlighted.
+    func testStepLinksOpenThatStep() {
+        launch("-resetStore")
+        XCTAssertTrue(row("Pick, WO-10402").waitForExistence(timeout: 10))
+        row("Pick, WO-10402").tap()
+
+        XCTAssertTrue(row("2. Pack").waitForExistence(timeout: 5))
+        row("2. Pack").tap()
+        XCTAssertTrue(app.navigationBars["Pack"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["disabledReason"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["disabledReason"].label, "Complete pick first.")
+        XCTAssertFalse(row("1. Pick").isSelected)
+    }
 }

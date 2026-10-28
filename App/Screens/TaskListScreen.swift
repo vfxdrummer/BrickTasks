@@ -29,7 +29,7 @@ struct TaskListScreen<Model: TaskListViewModeling>: View {
                     }
                 }
                 .navigationDestination(for: String.self) { taskID in
-                    TaskDetailHost(make: { model.makeDetail(taskID: taskID) })
+                    TaskDetailHost(make: { model.makeDetail(taskID: taskID) }, makeStep: { model.makeDetail(taskID: $0) })
                 }
                 .sheet(isPresented: $isPickingDate) { datePicker }
                 .confirmationDialog("Reset sandbox data?", isPresented: $isConfirmingReset, titleVisibility: .visible) {
