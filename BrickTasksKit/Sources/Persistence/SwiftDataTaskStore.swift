@@ -16,8 +16,13 @@ public actor SwiftDataTaskStore: TaskLocalDataSource {
 
     private static let schema = Schema([TaskRecord.self, DaySyncRecord.self])
 
+    /// Creating several containers for the same schema at once crashes inside Core Data
+    /// (`createTriggersForEntities`, EXC_BAD_ACCESS). Seen when parallel tests each build a store.
+    private static let containerCreation = NSLock()
+
     private static func make(_ configuration: ModelConfiguration) throws -> SwiftDataTaskStore {
-        SwiftDataTaskStore(modelContainer: try ModelContainer(for: schema, configurations: configuration))
+        let container = try containerCreation.withLock { try ModelContainer(for: schema, configurations: configuration) }
+        return SwiftDataTaskStore(modelContainer: container)
     }
 
     public func tasks(on day: CalendarDay) throws -> [WorkTask] {
