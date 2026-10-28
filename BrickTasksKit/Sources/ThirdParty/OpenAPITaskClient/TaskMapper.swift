@@ -7,7 +7,7 @@ internal import Foundation
 enum TaskMapper {
     typealias Wire = Components.Schemas
 
-    static func task(_ wire: Wire.Task) throws(APIError) -> WorkTask {
+    static func task(_ wire: Wire.Task) throws(RemoteDataSourceError) -> WorkTask {
         guard let day = CalendarDay(wire.date) else {
             throw .invalidResponse("Task \(wire.id) has invalid date \"\(wire.date)\"")
         }
@@ -31,7 +31,7 @@ enum TaskMapper {
         )
     }
 
-    static func receipt(_ wire: Wire.ActionRecord) throws(APIError) -> ActionReceipt {
+    static func receipt(_ wire: Wire.ActionRecord) throws(RemoteDataSourceError) -> ActionReceipt {
         var day: CalendarDay?
         if let date = wire.date {
             guard let parsed = CalendarDay(date) else {
@@ -45,7 +45,7 @@ enum TaskMapper {
     }
 
     /// The server only accepts the statuses it knows; asking for an unknown one would be a 400.
-    static func wireStatus(_ status: TaskStatus) throws(APIError) -> Wire.KnownTaskStatus {
+    static func wireStatus(_ status: TaskStatus) throws(RemoteDataSourceError) -> Wire.KnownTaskStatus {
         switch status {
         case .pending: .pending
         case .done: .done

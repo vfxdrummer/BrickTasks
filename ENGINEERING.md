@@ -7,11 +7,12 @@ The rules every change in this repo follows. If a rule needs to change, change i
 SwiftUI + MVVM, with a repository between the ViewModels and the network. **Every layer talks to the next through a protocol.**
 
 ```
-View<VM> ─▶ ViewModel ─▶ TaskRepository ─┬─▶ TaskAPI ──────────▶ TaskEndpoints ◀── ThirdParty/OpenAPITaskClient
-(generic over  (@Observable)  (protocol)  │   (protocol, Domain)    (protocol, Networking)   (generated client + adapter)
- VM protocol)                             ├─▶ TaskStore ◀── Persistence (SwiftData)
-                                          └─▶ SandboxReset (optional) ◀── OpenAPITaskClient / TaskSimulator
-Domain: pure types, rules, and the ports (protocols) the outer layers implement
+View<VM> ─▶ ViewModel ─▶ TaskRepository ─┬─▶ TaskRemoteDataSource ◀── Networking (paging, retries) ─▶ TaskEndpoints ◀── ThirdParty/OpenAPITaskClient
+                                         ├─▶ TaskLocalDataSource  ◀── Persistence (SwiftData)
+                                         └─▶ SandboxReset         ◀── OpenAPITaskClient / TaskSimulator (optional)
+
+Views are generic over ViewModel protocols; ViewModels are @Observable and depend on the TaskRepository protocol.
+Domain: Models/, Ports/ (the protocols above), Time/. Every other target depends inward on it.
 App: composition root. The only place that picks concrete types.
 ```
 
@@ -19,21 +20,22 @@ Code lives in a local Swift package, `BrickTasksKit`, with one target per layer,
 
 | Target | Owns | Must not |
 |---|---|---|
-| **Domain** | `WorkTask`, `CalendarDay`, `WallClockTime`, overdue rules, `WarehouseClock`, ports (`TaskAPI`), `APIError` | Import anything but Foundation |
-| **Networking** | `TaskEndpoints` port (one method = one HTTP request), `RemoteTaskAPI` (paging, de-duplication, read retries) | Import any third-party module or know HTTP details |
+| **Domain** | `Models/`: `WorkTask`, `WorkOrder`, `CalendarDay`, `WallClockTime`, `ActionReceipt`, `TaskQuery`, overdue rule. `Ports/`: `TaskRemoteDataSource`, `TaskLocalDataSource`, `SandboxReset`, `Connectivity`, `RemoteDataSourceError`. `Time/`: `WarehouseClock` | Import anything but Foundation |
+| **Networking** | `TaskEndpoints` port (one method = one HTTP request), `PagingTaskRemoteDataSource` (paging, de-duplication, read retries) | Import any third-party module or know HTTP details |
 | **ThirdParty/OpenAPITaskClient** | `openapi.yaml`, generated client, `OpenAPITaskEndpoints` adapter, wire→domain `TaskMapper`, `ErrorMapper` | Expose generated types (they're `package`/`internal`), retry, or make policy decisions |
-| **Persistence** | `SwiftDataTaskStore` (`TaskStore` on SwiftData, an actor with its own `ModelContext`) | Make network calls |
+| **Persistence** | `SwiftDataTaskStore` (`TaskLocalDataSource` on SwiftData, an actor with its own `ModelContext`) | Make network calls |
 | **Repository** | `TaskRepository` protocol and `OfflineFirstTaskRepository`: local copy as source of truth, refresh policy, day replacement, action reconciliation, change feed | Know about SwiftUI or view state |
 | **Features** | ViewModel protocols (`TaskListViewModeling`, `TaskDetailViewModeling`) and `@Observable @MainActor` implementations, presentation formatting | Import SwiftUI, networking or third-party modules |
-| **TaskSimulator** | `SimulatedTaskAPI`: in-memory server enforcing the real API's rules, with scriptable failures; `SampleData` | Ship in the live composition. Used only by tests and `-uiTesting` launches |
+| **TaskSimulator** | `SimulatedTaskServer`: in-memory server enforcing the real API's rules, with scriptable failures; `SampleData` | Ship in the live composition. Used only by tests and `-uiTesting` launches |
 | **App** (Xcode target) | SwiftUI views generic over ViewModel protocols, `AppEnvironment` composition root, `NWPathMonitor` connectivity | Contain business logic |
 
 ### Rules
 - **Third-party code lives in `Sources/ThirdParty/<Name>/`**, in its own target, behind a protocol the app owns. It's the only target allowed to import that dependency. Its imports are `internal`, so its types can't leak. Swapping the library means rewriting one adapter target.
-- **Protocols at every boundary.** Each layer depends on a protocol for the next (`TaskRepository`, `TaskAPI`, `TaskEndpoints`, `TaskStore`, `SandboxReset`, `WarehouseClock`, `Connectivity`, `Sleeper`), and views are generic over ViewModel protocols. Concrete types are chosen only in the composition root. Inject everything through initializers; no singletons, no `.shared`.
+- **Ports live in `Domain/Ports`, with their consumer's vocabulary.** The repository combines a `TaskRemoteDataSource` and a `TaskLocalDataSource`, and both speak domain types only. Ports sit in Domain rather than next to their implementations so that dependencies point inward: Networking, Persistence and TaskSimulator implement them, and the repository depends on nothing but Domain.
+- **Protocols at every boundary.** Each layer depends on a protocol for the next (`TaskRepository`, `TaskRemoteDataSource`, `TaskEndpoints`, `TaskLocalDataSource`, `SandboxReset`, `WarehouseClock`, `Connectivity`, `Sleeper`), and views are generic over ViewModel protocols. Concrete types are chosen only in the composition root. Inject everything through initializers; no singletons, no `.shared`.
 - **Wire types never leave their adapter.** Generated `Components.Schemas.*` → domain happens in `TaskMapper`, which is unit tested.
 - **Time is injected.** Anything that needs "now" or "today" takes a `WarehouseClock`. Never call `Date()` in logic.
-- **Swift Concurrency only.** `async/await` with typed `throws(APIError)` at the ports. No Combine, no completion handlers. ViewModels are `@MainActor`. Swift 6 language mode.
+- **Swift Concurrency only.** `async/await` with typed `throws(RemoteDataSourceError)` at the ports. No Combine, no completion handlers. ViewModels are `@MainActor`. Swift 6 language mode.
 - **Adding a dependency** means updating this file with the reason, and putting it under `ThirdParty/`.
 
 ## 2. Networking
@@ -43,9 +45,9 @@ Code lives in a local Swift package, `BrickTasksKit`, with one target per layer,
 - Responses are tolerant: extra fields are ignored, and `kind`/`status`/action enums are open (`anyOf` a known enum or any string), mapping to `.unknown(String)`.
 - **A malformed task fails the whole response** (`.invalidResponse`) instead of being dropped. A silently missing task is worse than an error shown over the cached list.
 - Dates: `createdAt`/`appliedAt` have fractional seconds, so the client uses `.iso8601WithFractionalSeconds`. `date`/`time` stay strings on the wire and are parsed into `CalendarDay`/`WallClockTime` by the mapper.
-- **Errors → `APIError`:** 400 `.badRequest`, 404 `.notFound`, 409 `.actionNotAllowed`, 429 `.rateLimited(retryAfter:)`, other/5xx `.server` (including non-JSON CDN pages), and transport failures split into `.notConnected` (never sent) vs `.connectionInterrupted` (may have landed).
+- **Errors → `RemoteDataSourceError`:** 400 `.badRequest`, 404 `.notFound`, 409 `.actionNotAllowed`, 429 `.rateLimited(retryAfter:)`, other/5xx `.server` (including non-JSON CDN pages), and transport failures split into `.notConnected` (never sent) vs `.connectionInterrupted` (may have landed).
 - The base URL is configuration, injected into `OpenAPITaskEndpoints(baseURL:)`.
-- **Pagination** (`RemoteTaskAPI`): `limit=50`, advance by the number of items returned, stop at `total` or on an empty page, de-duplicate by id, cap at 40 pages. An error on any page fails the whole fetch.
+- **Pagination** (`PagingTaskRemoteDataSource`): `limit=50`, advance by the number of items returned, stop at `total` or on an empty page, de-duplicate by id, cap at 40 pages. An error on any page fails the whole fetch.
 - **429:** reads get one retry after `Retry-After` (default 1s, give up if over 5s). Actions are never retried.
 
 ## 3. Offline & sync
@@ -74,18 +76,18 @@ No layer merges without tests. Use **Swift Testing** (`@Test`, `#expect`) for un
 |---|---|---|
 | **Domain** | Pure unit tests | Overdue at boundaries (1 minute before and after, end of day, done-but-late), "today" across timezones and DST, unknown enum values |
 | **Networking** | Fake `TaskEndpoints` + recording `Sleeper` | Pagination loop, offsets advance by items returned, dedupe, empty-page stop, page cap, 429 retry rules, actions never retried |
-| **ThirdParty adapter** | `URLProtocol` stub + real captured fixtures, no real network | Exact URL/query/body for every endpoint, every status → `APIError`, `Retry-After`, CDN HTML errors, transport error split, tolerant decoding |
+| **ThirdParty adapter** | `URLProtocol` stub + real captured fixtures, no real network | Exact URL/query/body for every endpoint, every status → `RemoteDataSourceError`, `Retry-After`, CDN HTML errors, transport error split, tolerant decoding |
 | **Store** | In-memory store instance | Upsert by id, query by day, a reschedule moves a task between days, persisting `lastSyncedAt` |
 | **TaskSimulator** | Pure unit tests | It behaves like the real server: sequencing, 409 messages, reschedule keeps time, failures before/after applying, reset |
-| **Repository** | `SimulatedTaskAPI` + real in-memory SwiftData store | Cache-first read, day replacement/eviction, offline keeps cache, action → work-order refetch, 409 / lost-response reconciliation, never retries or queues actions, reset, change feed |
-| **ViewModel** | Real repository over `SimulatedTaskAPI` + in-memory store, fixed clock, fake `Connectivity` | State transitions (loading → loaded / empty / unavailable), offline banner, button enablement and reasons, plain-language errors, day navigation, overdue ticking, customer filter, double-tap guard |
+| **Repository** | `SimulatedTaskServer` + real in-memory SwiftData store | Cache-first read, day replacement/eviction, offline keeps cache, action → work-order refetch, 409 / lost-response reconciliation, never retries or queues actions, reset, change feed |
+| **ViewModel** | Real repository over `SimulatedTaskServer` + in-memory store, fixed clock, fake `Connectivity` | State transitions (loading → loaded / empty / unavailable), offline banner, button enablement and reasons, plain-language errors, day navigation, overdue ticking, customer filter, double-tap guard |
 | **UI** | XCUITest, app launched with `-uiTesting -time 12:00` on the simulator server | Overdue at a glance, complete with confirmation, cancel, blocked step, reschedule across days, offline relaunch, offline with nothing saved, customer filter |
 
 ViewModel tests use the real repository, not a fake. A fake repository would have to re-implement reconciliation to be useful. Faking at the network edge tests what the operator actually sees, and stays fast (the whole package suite runs in under a second).
 
 ### Test rules
 - Tests never hit the real sandbox.
-- Fakes record calls (`SimulatedTaskAPI.calls`, `FakeTaskEndpoints.calls`, `RecordingSleeper.sleeps`), so tests assert on behavior and not just on return values. The shared fake server is the `TaskSimulator` target; per-layer fakes live in that layer's test target.
+- Fakes record calls (`SimulatedTaskServer.calls`, `FakeTaskEndpoints.calls`, `RecordingSleeper.sleeps`), so tests assert on behavior and not just on return values. The shared fake server is the `TaskSimulator` target; per-layer fakes live in that layer's test target.
 - Fixed `Clock` in every test that touches time. A test that depends on the real date is a bug.
 - New bug → write a failing test first, then fix it.
 - `xcodebuild test -scheme BrickTasks` (package tests on iOS + UI tests) must be green before every commit. `swift test` in `BrickTasksKit` runs the package tests on macOS in about a second.

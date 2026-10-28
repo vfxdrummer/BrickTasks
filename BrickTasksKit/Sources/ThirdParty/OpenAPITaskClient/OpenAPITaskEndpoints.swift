@@ -5,7 +5,7 @@ internal import OpenAPIRuntime
 internal import OpenAPIURLSession
 
 /// `TaskEndpoints` backed by swift-openapi-generator. The only place in the app that knows
-/// about OpenAPI types; everything it returns or throws is a domain type or `APIError`.
+/// about OpenAPI types; everything it returns or throws is a domain type or `RemoteDataSourceError`.
 public struct OpenAPITaskEndpoints: TaskEndpoints, SandboxReset {
     private let client: Client
 
@@ -19,7 +19,7 @@ public struct OpenAPITaskEndpoints: TaskEndpoints, SandboxReset {
         )
     }
 
-    public func listTasks(_ query: TaskQuery, offset: Int, limit: Int) async throws(APIError) -> TaskPage {
+    public func listTasks(_ query: TaskQuery, offset: Int, limit: Int) async throws(RemoteDataSourceError) -> TaskPage {
         let output = try await call {
             try await client.listTasks(query: .init(
                 date: query.day?.description,
@@ -40,7 +40,7 @@ public struct OpenAPITaskEndpoints: TaskEndpoints, SandboxReset {
         }
     }
 
-    public func getTask(id: String) async throws(APIError) -> WorkTask {
+    public func getTask(id: String) async throws(RemoteDataSourceError) -> WorkTask {
         let output = try await call { try await client.getTask(path: .init(id: id)) }
         switch output {
         case .ok(let ok): return try TaskMapper.task(try map { try ok.body.json })
@@ -50,7 +50,7 @@ public struct OpenAPITaskEndpoints: TaskEndpoints, SandboxReset {
         }
     }
 
-    public func createAction(_ action: TaskActionRequest) async throws(APIError) -> ActionReceipt {
+    public func createAction(_ action: TaskActionRequest) async throws(RemoteDataSourceError) -> ActionReceipt {
         let body: Components.Schemas.ActionRequest = switch action {
         case .complete(let id):
             .complete(.init(taskId: id, kind: .complete))
@@ -68,7 +68,7 @@ public struct OpenAPITaskEndpoints: TaskEndpoints, SandboxReset {
         }
     }
 
-    public func resetSandbox() async throws(APIError) {
+    public func resetSandbox() async throws(RemoteDataSourceError) {
         switch try await call({ try await client.resetSandbox() }) {
         case .noContent: return
         case .notFound(let r): throw ErrorMapper.error(status: 404, body: try? r.body.json)
@@ -77,11 +77,11 @@ public struct OpenAPITaskEndpoints: TaskEndpoints, SandboxReset {
         }
     }
 
-    private func call<T>(_ operation: () async throws -> T) async throws(APIError) -> T {
+    private func call<T>(_ operation: () async throws -> T) async throws(RemoteDataSourceError) -> T {
         do { return try await operation() } catch { throw ErrorMapper.error(from: error) }
     }
 
-    private func map<T>(_ operation: () throws -> T) throws(APIError) -> T {
+    private func map<T>(_ operation: () throws -> T) throws(RemoteDataSourceError) -> T {
         do { return try operation() } catch { throw .invalidResponse(String(describing: error)) }
     }
 }

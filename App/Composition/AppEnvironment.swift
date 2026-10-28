@@ -38,8 +38,8 @@ final class AppEnvironment {
     private static func live() -> AppEnvironment {
         let clock = SystemWarehouseClock()
         let endpoints = OpenAPITaskEndpoints(baseURL: AppConfig.baseURL)
-        let api = RemoteTaskAPI(endpoints: endpoints)
-        let store: any TaskStore
+        let remote = PagingTaskRemoteDataSource(endpoints: endpoints)
+        let store: any TaskLocalDataSource
         do {
             store = try SwiftDataTaskStore.make(url: storeURL(named: "Tasks.sqlite"))
         } catch {
@@ -47,7 +47,7 @@ final class AppEnvironment {
             store = try! SwiftDataTaskStore.make(inMemory: true)
         }
         return AppEnvironment(
-            repository: OfflineFirstTaskRepository(api: api, store: store, clock: clock, sandbox: endpoints),
+            repository: OfflineFirstTaskRepository(remote: remote, local: store, clock: clock, sandbox: endpoints),
             connectivity: NetworkPathConnectivity(),
             clock: clock
         )
@@ -63,10 +63,10 @@ final class AppEnvironment {
             }
         }
         let clock = FixedWarehouseClock(now: options.now, timeZone: .current)
-        let api = SimulatedTaskAPI(tasks: SampleData.workOrders(around: clock.today))
-        if options.offline { Task { await api.setOffline(true) } }
+        let server = SimulatedTaskServer(tasks: SampleData.workOrders(around: clock.today))
+        if options.offline { Task { await server.setOffline(true) } }
         return AppEnvironment(
-            repository: OfflineFirstTaskRepository(api: api, store: try! SwiftDataTaskStore.make(url: url), clock: clock, sandbox: api),
+            repository: OfflineFirstTaskRepository(remote: server, local: try! SwiftDataTaskStore.make(url: url), clock: clock, sandbox: server),
             connectivity: FixedConnectivity(isOnline: !options.offline),
             clock: clock
         )

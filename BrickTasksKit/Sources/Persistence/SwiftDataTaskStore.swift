@@ -2,9 +2,9 @@ public import Domain
 public import Foundation
 public import SwiftData
 
-/// `TaskStore` on SwiftData. An actor with its own `ModelContext`, so callers on any thread are safe.
+/// `TaskLocalDataSource` on SwiftData. An actor with its own `ModelContext`, so callers on any thread are safe.
 @ModelActor
-public actor SwiftDataTaskStore: TaskStore {
+public actor SwiftDataTaskStore: TaskLocalDataSource {
     /// `inMemory` is for tests and UI-test launches; the app uses the on-disk store.
     public static func make(inMemory: Bool = false) throws -> SwiftDataTaskStore {
         try make(ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory))

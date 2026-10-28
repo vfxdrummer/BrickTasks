@@ -11,31 +11,31 @@ actor FakeTaskEndpoints: TaskEndpoints {
     }
 
     private(set) var calls: [Call] = []
-    private var listReplies: [Result<TaskPage, APIError>]
-    private var getReplies: [Result<WorkTask, APIError>]
-    private var actionReplies: [Result<ActionReceipt, APIError>]
+    private var listReplies: [Result<TaskPage, RemoteDataSourceError>]
+    private var getReplies: [Result<WorkTask, RemoteDataSourceError>]
+    private var actionReplies: [Result<ActionReceipt, RemoteDataSourceError>]
 
     init(
-        list: [Result<TaskPage, APIError>] = [],
-        get: [Result<WorkTask, APIError>] = [],
-        action: [Result<ActionReceipt, APIError>] = []
+        list: [Result<TaskPage, RemoteDataSourceError>] = [],
+        get: [Result<WorkTask, RemoteDataSourceError>] = [],
+        action: [Result<ActionReceipt, RemoteDataSourceError>] = []
     ) {
         self.listReplies = list
         self.getReplies = get
         self.actionReplies = action
     }
 
-    func listTasks(_ query: TaskQuery, offset: Int, limit: Int) async throws(APIError) -> TaskPage {
+    func listTasks(_ query: TaskQuery, offset: Int, limit: Int) async throws(RemoteDataSourceError) -> TaskPage {
         calls.append(.list(query, offset: offset, limit: limit))
         return try listReplies.removeFirst().get()
     }
 
-    func getTask(id: String) async throws(APIError) -> WorkTask {
+    func getTask(id: String) async throws(RemoteDataSourceError) -> WorkTask {
         calls.append(.get(id))
         return try getReplies.removeFirst().get()
     }
 
-    func createAction(_ action: TaskActionRequest) async throws(APIError) -> ActionReceipt {
+    func createAction(_ action: TaskActionRequest) async throws(RemoteDataSourceError) -> ActionReceipt {
         calls.append(.action(action))
         return try actionReplies.removeFirst().get()
     }

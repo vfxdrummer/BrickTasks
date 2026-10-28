@@ -2,11 +2,11 @@ import Domain
 
 /// One method = one HTTP request. This is the seam to whatever HTTP client we use: the app's
 /// networking logic (paging, retries) sits above it, and the third-party client sits below it.
-/// Implementations map their own wire types and failures to domain types and `APIError`.
+/// Implementations map their own wire types and failures to domain types and `RemoteDataSourceError`.
 public protocol TaskEndpoints: Sendable {
-    func listTasks(_ query: TaskQuery, offset: Int, limit: Int) async throws(APIError) -> TaskPage
-    func getTask(id: String) async throws(APIError) -> WorkTask
-    func createAction(_ action: TaskActionRequest) async throws(APIError) -> ActionReceipt
+    func listTasks(_ query: TaskQuery, offset: Int, limit: Int) async throws(RemoteDataSourceError) -> TaskPage
+    func getTask(id: String) async throws(RemoteDataSourceError) -> WorkTask
+    func createAction(_ action: TaskActionRequest) async throws(RemoteDataSourceError) -> ActionReceipt
 }
 
 public struct TaskPage: Hashable, Sendable {

@@ -18,15 +18,15 @@ private func chain(_ wo: String = "wo_1", day: CalendarDay = today) -> [WorkTask
 
 /// Real in-memory SwiftData store + simulated server: tests observe what the operator would see.
 struct Harness {
-    let api: SimulatedTaskAPI
+    let server: SimulatedTaskServer
     let store: SwiftDataTaskStore
     let repository: OfflineFirstTaskRepository
 
     init(tasks: [WorkTask] = chain(), resettable: Bool = true) throws {
-        api = SimulatedTaskAPI(tasks: tasks)
+        server = SimulatedTaskServer(tasks: tasks)
         store = try SwiftDataTaskStore.make(inMemory: true)
         repository = OfflineFirstTaskRepository(
-            api: api, store: store, clock: FixedWarehouseClock(now: now, timeZone: .gmt), sandbox: resettable ? api : nil
+            remote: server, local: store, clock: FixedWarehouseClock(now: now, timeZone: .gmt), sandbox: resettable ? server : nil
         )
     }
 }
@@ -50,7 +50,7 @@ struct ReadTests {
     @Test func offlineRefreshFailsButCacheStillServes() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
 
         await #expect(throws: RepositoryError.offline) { try await h.repository.refreshDay(today) }
         #expect(await h.repository.cachedDay(today).tasks.count == 3)
@@ -60,8 +60,8 @@ struct ReadTests {
     @Test func refreshDropsTasksRescheduledAwayByTheOffice() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        let ship = try #require(await h.api.serverTask(id: "wo_1_3"))
-        await h.api.officeEdit(ship.with(status: .pending, day: today.adding(days: 1), allowedActions: []))
+        let ship = try #require(await h.server.serverTask(id: "wo_1_3"))
+        await h.server.officeEdit(ship.with(status: .pending, day: today.adding(days: 1), allowedActions: []))
 
         let snapshot = try await h.repository.refreshDay(today)
         #expect(snapshot.tasks.map(\.id) == ["wo_1_1", "wo_1_2"])
@@ -70,7 +70,7 @@ struct ReadTests {
     @Test func refreshPicksUpOfficeCompletions() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        _ = try await h.api.complete(taskID: "wo_1_1") // office staff, not us
+        _ = try await h.server.complete(taskID: "wo_1_1") // office staff, not us
 
         let snapshot = try await h.repository.refreshDay(today)
         #expect(snapshot.tasks.first?.isDone == true)
@@ -79,26 +79,26 @@ struct ReadTests {
 
     @Test func expiredSandboxIsListUnavailable() async throws {
         let h = try Harness()
-        await h.api.fail(.list, with: .before(.notFound(message: "Not found")))
+        await h.server.fail(.list, with: .before(.notFound(message: "Not found")))
         await #expect(throws: RepositoryError.listUnavailable) { try await h.repository.refreshDay(today) }
     }
 
     @Test(arguments: [
-        (APIError.rateLimited(retryAfter: 1), RepositoryError.busy),
+        (RemoteDataSourceError.rateLimited(retryAfter: 1), RepositoryError.busy),
         (.connectionInterrupted, .offline),
         (.server(status: 500, message: nil), .unexpected("The server had a problem (500).")),
     ])
-    func refreshErrorsMapToOperatorMeaning(_ pair: (APIError, RepositoryError)) async throws {
+    func refreshErrorsMapToOperatorMeaning(_ pair: (RemoteDataSourceError, RepositoryError)) async throws {
         let h = try Harness()
-        await h.api.fail(.list, with: .before(pair.0))
+        await h.server.fail(.list, with: .before(pair.0))
         await #expect(throws: pair.1) { try await h.repository.refreshDay(today) }
     }
 
     @Test func refreshWorkOrderFetchesWholeChainAcrossDays() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        let ship = try #require(await h.api.serverTask(id: "wo_1_3"))
-        await h.api.officeEdit(ship.with(status: .pending, day: today.adding(days: 3), allowedActions: []))
+        let ship = try #require(await h.server.serverTask(id: "wo_1_3"))
+        await h.server.officeEdit(ship.with(status: .pending, day: today.adding(days: 3), allowedActions: []))
 
         try await h.repository.refreshWorkOrder(containing: "wo_1_1")
         let chain = await h.repository.cachedWorkOrder(id: "wo_1")
@@ -115,7 +115,7 @@ struct ReadTests {
     @Test func taskDeletedOnServerIsRemovedLocally() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.officeDelete(id: "wo_1_2")
+        await h.server.officeDelete(id: "wo_1_2")
 
         await #expect(throws: RepositoryError.taskNotFound) { try await h.repository.refreshWorkOrder(containing: "wo_1_2") }
         #expect(await h.repository.cachedTask(id: "wo_1_2") == nil)
@@ -136,29 +136,29 @@ struct CompleteTests {
     @Test func offlineCompleteChangesNothingAndIsNotQueued() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
 
         await #expect(throws: RepositoryError.offline) { try await h.repository.complete(taskID: "wo_1_1") }
-        await h.api.setOffline(false)
-        #expect(await h.api.serverTask(id: "wo_1_1")?.status == .pending)
+        await h.server.setOffline(false)
+        #expect(await h.server.serverTask(id: "wo_1_1")?.status == .pending)
         #expect(await h.repository.cachedTask(id: "wo_1_1")?.isDone == false)
     }
 
     @Test func lostResponseButLandedIsApplied() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.fail(.complete, with: .after(.connectionInterrupted))
+        await h.server.fail(.complete, with: .after(.connectionInterrupted))
 
         #expect(try await h.repository.complete(taskID: "wo_1_1") == .applied)
         #expect(await h.repository.cachedTask(id: "wo_1_1")?.isDone == true)
-        let completes = await h.api.calls.filter { if case .complete = $0 { true } else { false } }
+        let completes = await h.server.calls.filter { if case .complete = $0 { true } else { false } }
         #expect(completes.count == 1) // never retried
     }
 
     @Test func lostRequestThatDidNotLandIsNotApplied() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.fail(.complete, with: .before(.connectionInterrupted))
+        await h.server.fail(.complete, with: .before(.connectionInterrupted))
 
         await #expect(throws: RepositoryError.notApplied) { try await h.repository.complete(taskID: "wo_1_1") }
         #expect(await h.repository.cachedTask(id: "wo_1_1")?.isDone == false)
@@ -167,8 +167,8 @@ struct CompleteTests {
     @Test func lostResponseAndCannotConfirmIsOutcomeUnknown() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.fail(.complete, with: .after(.connectionInterrupted))
-        await h.api.fail(.list, with: .before(.notConnected))
+        await h.server.fail(.complete, with: .after(.connectionInterrupted))
+        await h.server.fail(.list, with: .before(.notConnected))
 
         await #expect(throws: RepositoryError.outcomeUnknown) { try await h.repository.complete(taskID: "wo_1_1") }
     }
@@ -176,7 +176,7 @@ struct CompleteTests {
     @Test func conflictBecauseOfficeAlreadyCompletedIsAlreadyApplied() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        _ = try await h.api.complete(taskID: "wo_1_1") // office got there first
+        _ = try await h.server.complete(taskID: "wo_1_1") // office got there first
 
         #expect(try await h.repository.complete(taskID: "wo_1_1") == .alreadyApplied)
         #expect(await h.repository.cachedTask(id: "wo_1_1")?.isDone == true)
@@ -185,10 +185,10 @@ struct CompleteTests {
     @Test func conflictBecauseEarlierStepUndoneIsRejectedWithFreshState() async throws {
         let h = try Harness()
         // Our cache is stale: it thinks pack is completable.
-        _ = try await h.api.complete(taskID: "wo_1_1")
+        _ = try await h.server.complete(taskID: "wo_1_1")
         _ = try await h.repository.refreshDay(today)
-        let pick = try #require(await h.api.serverTask(id: "wo_1_1"))
-        await h.api.officeEdit(pick.with(status: .pending, day: pick.day, allowedActions: []))
+        let pick = try #require(await h.server.serverTask(id: "wo_1_1"))
+        await h.server.officeEdit(pick.with(status: .pending, day: pick.day, allowedActions: []))
 
         await #expect(throws: RepositoryError.rejected(message: "pack cannot be completed until pick is done")) {
             try await h.repository.complete(taskID: "wo_1_2")
@@ -199,7 +199,7 @@ struct CompleteTests {
     @Test func completingDeletedTaskRemovesIt() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.officeDelete(id: "wo_1_1")
+        await h.server.officeDelete(id: "wo_1_1")
 
         await #expect(throws: RepositoryError.taskNotFound) { try await h.repository.complete(taskID: "wo_1_1") }
         #expect(await h.repository.cachedTask(id: "wo_1_1") == nil)
@@ -208,16 +208,16 @@ struct CompleteTests {
     @Test func rateLimitedActionIsBusyAndNotRetried() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.fail(.complete, with: .before(.rateLimited(retryAfter: 1)))
+        await h.server.fail(.complete, with: .before(.rateLimited(retryAfter: 1)))
 
         await #expect(throws: RepositoryError.busy) { try await h.repository.complete(taskID: "wo_1_1") }
-        #expect(await h.api.serverTask(id: "wo_1_1")?.status == .pending)
+        #expect(await h.server.serverTask(id: "wo_1_1")?.status == .pending)
     }
 
     @Test func refetchFailureAfterSuccessStillShowsTheChange() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.fail(.list, with: .before(.notConnected))
+        await h.server.fail(.list, with: .before(.notConnected))
 
         #expect(try await h.repository.complete(taskID: "wo_1_1") == .applied)
         #expect(await h.repository.cachedTask(id: "wo_1_1")?.isDone == true)
@@ -238,7 +238,7 @@ struct RescheduleTests {
     @Test func lostResponseButLandedIsApplied() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.fail(.reschedule, with: .after(.connectionInterrupted))
+        await h.server.fail(.reschedule, with: .after(.connectionInterrupted))
 
         #expect(try await h.repository.reschedule(taskID: "wo_1_2", to: today.adding(days: 2)) == .applied)
         #expect(await h.repository.cachedTask(id: "wo_1_2")?.day == today.adding(days: 2))
@@ -247,7 +247,7 @@ struct RescheduleTests {
     @Test func reschedulingADoneTaskIsRejected() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        _ = try await h.api.complete(taskID: "wo_1_1")
+        _ = try await h.server.complete(taskID: "wo_1_1")
 
         await #expect(throws: RepositoryError.rejected(message: "pick is already done")) {
             try await h.repository.reschedule(taskID: "wo_1_1", to: today.adding(days: 1))
@@ -258,7 +258,7 @@ struct RescheduleTests {
     @Test func refetchFailureAfterSuccessPatchesDayLocally() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.fail(.list, with: .before(.notConnected))
+        await h.server.fail(.list, with: .before(.notConnected))
 
         _ = try await h.repository.reschedule(taskID: "wo_1_1", to: today.adding(days: 1))
         #expect(await h.repository.cachedTask(id: "wo_1_1")?.day == today.adding(days: 1))
@@ -292,7 +292,7 @@ struct SandboxResetTests {
 
         try await h.repository.resetSandbox()
 
-        #expect(await h.api.serverTask(id: "wo_1_1")?.status == .pending)
+        #expect(await h.server.serverTask(id: "wo_1_1")?.status == .pending)
         #expect(await h.repository.cachedDay(today) == DaySnapshot(day: today, tasks: [], lastSyncedAt: nil))
         #expect(await h.repository.cachedDay(today.adding(days: 1)).tasks.isEmpty)
     }
@@ -300,7 +300,7 @@ struct SandboxResetTests {
     @Test func resetOfflineKeepsTheCache() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
 
         await #expect(throws: RepositoryError.offline) { try await h.repository.resetSandbox() }
         #expect(await h.repository.cachedDay(today).tasks.count == 3)
@@ -310,6 +310,6 @@ struct SandboxResetTests {
         let h = try Harness(resettable: false)
         #expect(!h.repository.canResetSandbox)
         await #expect(throws: RepositoryError.self) { try await h.repository.resetSandbox() }
-        #expect(await h.api.calls.isEmpty)
+        #expect(await h.server.calls.isEmpty)
     }
 }

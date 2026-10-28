@@ -60,19 +60,19 @@ func chain(_ wo: String = "wo_1", day: CalendarDay = today, times: [String] = ["
     }
 }
 
-/// ViewModels over the real repository and store, with the network faked by `SimulatedTaskAPI`.
+/// ViewModels over the real repository and store, with the network faked by `SimulatedTaskServer`.
 @MainActor
 struct Harness {
-    let api: SimulatedTaskAPI
+    let server: SimulatedTaskServer
     let repository: OfflineFirstTaskRepository
     let clock: TestClock
     let connectivity: TestConnectivity
 
     init(tasks: [WorkTask] = chain(), now: Date = at("08:30"), online: Bool = true) throws {
-        api = SimulatedTaskAPI(tasks: tasks)
+        server = SimulatedTaskServer(tasks: tasks)
         clock = TestClock(now)
         connectivity = TestConnectivity(online: online)
-        repository = OfflineFirstTaskRepository(api: api, store: try SwiftDataTaskStore.make(inMemory: true), clock: clock, sandbox: api)
+        repository = OfflineFirstTaskRepository(remote: server, local: try SwiftDataTaskStore.make(inMemory: true), clock: clock, sandbox: server)
     }
 
     func detail(_ id: String) -> TaskDetailViewModel {

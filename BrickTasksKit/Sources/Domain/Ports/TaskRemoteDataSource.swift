@@ -2,12 +2,12 @@ import Foundation
 
 /// What the data layer needs from the server. Speaks domain types only; the Networking module
 /// implements it and keeps its generated wire types to itself.
-public protocol TaskAPI: Sendable {
+public protocol TaskRemoteDataSource: Sendable {
     /// Every task matching `query`, across all pages, de-duplicated by id.
-    func tasks(matching query: TaskQuery) async throws(APIError) -> [WorkTask]
-    func task(id: String) async throws(APIError) -> WorkTask
-    func complete(taskID: String) async throws(APIError) -> ActionReceipt
-    func reschedule(taskID: String, to day: CalendarDay) async throws(APIError) -> ActionReceipt
+    func tasks(matching query: TaskQuery) async throws(RemoteDataSourceError) -> [WorkTask]
+    func task(id: String) async throws(RemoteDataSourceError) -> WorkTask
+    func complete(taskID: String) async throws(RemoteDataSourceError) -> ActionReceipt
+    func reschedule(taskID: String, to day: CalendarDay) async throws(RemoteDataSourceError) -> ActionReceipt
 }
 
 public struct TaskQuery: Hashable, Sendable {
@@ -38,7 +38,7 @@ public struct ActionReceipt: Hashable, Sendable {
     }
 }
 
-public enum APIError: Error, Hashable, Sendable {
+public enum RemoteDataSourceError: Error, Hashable, Sendable {
     /// 400: our request was wrong. A bug on our side, never the operator's.
     case badRequest(message: String)
     /// 404: no such task, or the whole sandbox URL has expired.

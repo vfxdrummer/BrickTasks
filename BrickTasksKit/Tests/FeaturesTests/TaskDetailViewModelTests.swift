@@ -59,7 +59,7 @@ struct TaskDetailViewModelTests {
     @Test func offlineDisablesActionsWithReason() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
         h.connectivity.set(online: false)
 
         let vm = h.detail("wo_1_1")
@@ -77,7 +77,7 @@ struct TaskDetailViewModelTests {
         let vm = h.detail("wo_1_1")
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
-            await h.api.setOffline(true)
+            await h.server.setOffline(true)
             await vm.completeTask()
             #expect(vm.banner == Banner(.offline, "No connection. Nothing was changed."))
             #expect(!vm.isDone)
@@ -90,7 +90,7 @@ struct TaskDetailViewModelTests {
         let vm = h.detail("wo_1_1")
         try await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
-            _ = try await h.api.complete(taskID: "wo_1_1")
+            _ = try await h.server.complete(taskID: "wo_1_1")
             await vm.completeTask()
             #expect(vm.confirmation == "Already marked done.")
             #expect(vm.banner == nil)
@@ -103,8 +103,8 @@ struct TaskDetailViewModelTests {
         let vm = h.detail("wo_1_1")
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
-            await h.api.fail(.complete, with: .after(.connectionInterrupted))
-            await h.api.fail(.list, with: .before(.notConnected))
+            await h.server.fail(.complete, with: .after(.connectionInterrupted))
+            await h.server.fail(.list, with: .before(.notConnected))
             await vm.completeTask()
             #expect(vm.banner?.message.contains("couldn't confirm") == true)
         }
@@ -118,7 +118,7 @@ struct TaskDetailViewModelTests {
             await vm.rescheduleTask(to: at("00:00", on: today.adding(days: 1)))
             #expect(vm.confirmation == "Moved to Tomorrow.")
             #expect(vm.due.hasPrefix("Tomorrow, 9:00"))
-            #expect(await h.api.serverTask(id: "wo_1_3")?.day == today.adding(days: 1))
+            #expect(await h.server.serverTask(id: "wo_1_3")?.day == today.adding(days: 1))
         }
     }
 
@@ -140,7 +140,7 @@ struct TaskDetailViewModelTests {
 
     @Test func deletedTaskIsNotFound() async throws {
         let h = try Harness()
-        await h.api.officeDelete(id: "wo_1_1")
+        await h.server.officeDelete(id: "wo_1_1")
         let vm = h.detail("wo_1_1")
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .notFound }
@@ -149,7 +149,7 @@ struct TaskDetailViewModelTests {
 
     @Test func uncachedTaskWhileOfflineIsUnavailable() async throws {
         let h = try Harness(online: false)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
         let vm = h.detail("wo_1_1")
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .unavailable }
@@ -165,7 +165,7 @@ struct TaskDetailViewModelTests {
             async let first: Void = vm.completeTask()
             async let second: Void = vm.completeTask()
             _ = await (first, second)
-            let completes = await h.api.calls.filter { if case .complete = $0 { true } else { false } }
+            let completes = await h.server.calls.filter { if case .complete = $0 { true } else { false } }
             #expect(completes.count == 1)
         }
     }

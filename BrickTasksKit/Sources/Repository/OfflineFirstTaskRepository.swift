@@ -7,15 +7,15 @@ public import Foundation
 /// When an action's outcome is unclear (lost response, or a 409 that may be our own earlier
 /// attempt), the work order is refetched and the server's state decides what happened.
 public final class OfflineFirstTaskRepository: TaskRepository {
-    private let api: any TaskAPI
-    private let store: any TaskStore
+    private let remote: any TaskRemoteDataSource
+    private let local: any TaskLocalDataSource
     private let clock: any WarehouseClock
     private let sandbox: (any SandboxReset)?
     private let feed = ChangeFeed()
 
-    public init(api: any TaskAPI, store: any TaskStore, clock: any WarehouseClock, sandbox: (any SandboxReset)? = nil) {
-        self.api = api
-        self.store = store
+    public init(remote: any TaskRemoteDataSource, local: any TaskLocalDataSource, clock: any WarehouseClock, sandbox: (any SandboxReset)? = nil) {
+        self.remote = remote
+        self.local = local
         self.clock = clock
         self.sandbox = sandbox
     }
@@ -32,7 +32,7 @@ public final class OfflineFirstTaskRepository: TaskRepository {
             throw Self.map(error)
         }
         // Ids survive a reset but every date and status changes, so nothing cached is trustworthy.
-        try await write { try await store.deleteAll() }
+        try await write { try await local.deleteAll() }
     }
 
     public func changes() -> AsyncStream<Void> { feed.stream() }
@@ -43,30 +43,30 @@ public final class OfflineFirstTaskRepository: TaskRepository {
     public func cachedDay(_ day: CalendarDay) async -> DaySnapshot {
         DaySnapshot(
             day: day,
-            tasks: (try? await store.tasks(on: day)) ?? [],
-            lastSyncedAt: try? await store.lastSynced(day: day)
+            tasks: (try? await local.tasks(on: day)) ?? [],
+            lastSyncedAt: try? await local.lastSynced(day: day)
         )
     }
 
     public func refreshDay(_ day: CalendarDay) async throws(RepositoryError) -> DaySnapshot {
         let tasks: [WorkTask]
         do {
-            tasks = try await api.tasks(matching: TaskQuery(day: day))
+            tasks = try await remote.tasks(matching: TaskQuery(day: day))
         } catch .notFound {
             throw .listUnavailable
         } catch {
             throw Self.map(error)
         }
-        try await write { try await store.replace(day: day, with: tasks, syncedAt: clock.now) }
+        try await write { try await local.replace(day: day, with: tasks, syncedAt: clock.now) }
         return await cachedDay(day)
     }
 
     public func cachedTask(id: String) async -> WorkTask? {
-        try? await store.task(id: id)
+        try? await local.task(id: id)
     }
 
     public func cachedWorkOrder(id: String) async -> [WorkTask] {
-        (try? await store.tasks(inWorkOrder: id)) ?? []
+        (try? await local.tasks(inWorkOrder: id)) ?? []
     }
 
     public func refreshWorkOrder(containing taskID: String) async throws(RepositoryError) {
@@ -75,7 +75,7 @@ public final class OfflineFirstTaskRepository: TaskRepository {
             workOrderID = cached.workOrder.id
         } else {
             do {
-                workOrderID = try await api.task(id: taskID).workOrder.id
+                workOrderID = try await remote.task(id: taskID).workOrder.id
             } catch .notFound {
                 throw .taskNotFound
             } catch {
@@ -85,15 +85,15 @@ public final class OfflineFirstTaskRepository: TaskRepository {
 
         let fresh: [WorkTask]
         do {
-            fresh = try await api.tasks(matching: TaskQuery(workOrderID: workOrderID))
+            fresh = try await remote.tasks(matching: TaskQuery(workOrderID: workOrderID))
         } catch {
             throw Self.map(error)
         }
         let cachedIDs = Set(await cachedWorkOrder(id: workOrderID).map(\.id))
         let gone = cachedIDs.subtracting(fresh.map(\.id))
         try await write {
-            try await store.delete(ids: gone)
-            try await store.upsert(fresh)
+            try await local.delete(ids: gone)
+            try await local.upsert(fresh)
         }
         if !fresh.contains(where: { $0.id == taskID }) { throw .taskNotFound }
     }
@@ -105,8 +105,8 @@ public final class OfflineFirstTaskRepository: TaskRepository {
             taskID: taskID,
             landed: { $0.isDone },
             patch: { $0.with(status: .done, day: $0.day, allowedActions: []) }
-        ) { () async throws(APIError) in
-            _ = try await api.complete(taskID: taskID)
+        ) { () async throws(RemoteDataSourceError) in
+            _ = try await remote.complete(taskID: taskID)
         }
     }
 
@@ -115,8 +115,8 @@ public final class OfflineFirstTaskRepository: TaskRepository {
             taskID: taskID,
             landed: { $0.day == day },
             patch: { $0.with(status: $0.status, day: day, allowedActions: $0.allowedActions) }
-        ) { () async throws(APIError) in
-            _ = try await api.reschedule(taskID: taskID, to: day)
+        ) { () async throws(RemoteDataSourceError) in
+            _ = try await remote.reschedule(taskID: taskID, to: day)
         }
     }
 
@@ -126,7 +126,7 @@ public final class OfflineFirstTaskRepository: TaskRepository {
         taskID: String,
         landed: (WorkTask) -> Bool,
         patch: (WorkTask) -> WorkTask,
-        action: () async throws(APIError) -> Void
+        action: () async throws(RemoteDataSourceError) -> Void
     ) async throws(RepositoryError) -> ActionOutcome {
         do {
             try await action()
@@ -135,7 +135,7 @@ public final class OfflineFirstTaskRepository: TaskRepository {
         } catch .rateLimited {
             throw .busy
         } catch .notFound {
-            try? await write { try await store.delete(ids: [taskID]) }
+            try? await write { try await local.delete(ids: [taskID]) }
             throw .taskNotFound
         } catch .actionNotAllowed(let message) {
             // Either someone else got there first, or this is our own earlier attempt whose response was lost.
@@ -163,7 +163,7 @@ public final class OfflineFirstTaskRepository: TaskRepository {
         } catch {
             // The action landed. Don't report a failure just because the follow-up read didn't.
             if let task = await cachedTask(id: taskID) {
-                try? await write { try await store.upsert([patch(task)]) }
+                try? await write { try await local.upsert([patch(task)]) }
             }
         }
         return .applied
@@ -178,7 +178,7 @@ public final class OfflineFirstTaskRepository: TaskRepository {
         feed.send()
     }
 
-    static func map(_ error: APIError) -> RepositoryError {
+    static func map(_ error: RemoteDataSourceError) -> RepositoryError {
         switch error {
         case .notConnected: .offline
         case .connectionInterrupted: .offline

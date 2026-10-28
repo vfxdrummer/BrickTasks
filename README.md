@@ -29,15 +29,15 @@ The second command runs the package tests on macOS in about a second.
 SwiftUI + MVVM, with a repository between the ViewModels and the network. Every layer talks to the next through a protocol. Each layer is its own target in a local Swift package (`BrickTasksKit`), so the compiler enforces the boundaries rather than a convention.
 
 ```
-View<VM> ─▶ ViewModel ─▶ TaskRepository ─┬─▶ TaskAPI ──────────▶ TaskEndpoints ◀── ThirdParty/OpenAPITaskClient
-                                          ├─▶ TaskStore ◀── Persistence (SwiftData)
-                                          └─▶ SandboxReset (optional)
+View<VM> ─▶ ViewModel ─▶ TaskRepository ─┬─▶ TaskRemoteDataSource ◀── Networking ─▶ TaskEndpoints ◀── ThirdParty/OpenAPITaskClient
+                                         ├─▶ TaskLocalDataSource  ◀── Persistence (SwiftData)
+                                         └─▶ SandboxReset (optional)
 ```
 
 | Target | Owns |
 |---|---|
-| `Domain` | Models (`WorkTask`, `CalendarDay`, `WallClockTime`), the overdue rule, `WarehouseClock`, and the ports (`TaskAPI`, `TaskStore`, `Connectivity`, `SandboxReset`) |
-| `Networking` | `TaskEndpoints` (one method = one HTTP request) and `RemoteTaskAPI`: paging, de-duplication, the 429 retry for reads |
+| `Domain` | `Models/` (`WorkTask`, `CalendarDay`, `WallClockTime`, and the overdue rule); `Ports/`, the protocols outer layers implement (`TaskRemoteDataSource`, `TaskLocalDataSource`, `Connectivity`, `SandboxReset`); `Time/` (`WarehouseClock`) |
+| `Networking` | `TaskEndpoints` (one method = one HTTP request) and `PagingTaskRemoteDataSource`: paging, de-duplication, the 429 retry for reads |
 | `ThirdParty/OpenAPITaskClient` | `openapi.yaml`, the generated client, and an adapter that maps wire types and errors to the domain. The only target that imports a third-party package |
 | `Persistence` | `SwiftDataTaskStore`, an actor with its own `ModelContext` |
 | `Repository` | `OfflineFirstTaskRepository`: the local copy is the source of truth; refresh, day replacement, action reconciliation, change feed |

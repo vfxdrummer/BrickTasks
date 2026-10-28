@@ -1,7 +1,7 @@
 import Domain
 
-/// The app's `TaskAPI`: paging, de-duplication and read retries, on top of any `TaskEndpoints`.
-public struct RemoteTaskAPI: TaskAPI {
+/// The app's `TaskRemoteDataSource`: paging, de-duplication and read retries, on top of any `TaskEndpoints`.
+public struct PagingTaskRemoteDataSource: TaskRemoteDataSource {
     /// The server clamps anything above this.
     static let pageSize = 50
     /// Guards against a server that keeps reporting more items than it returns.
@@ -17,12 +17,12 @@ public struct RemoteTaskAPI: TaskAPI {
         self.sleeper = sleeper
     }
 
-    public func tasks(matching query: TaskQuery) async throws(APIError) -> [WorkTask] {
+    public func tasks(matching query: TaskQuery) async throws(RemoteDataSourceError) -> [WorkTask] {
         var result: [WorkTask] = []
         var seen = Set<String>()
         var offset = 0
         for _ in 0..<Self.maxPages {
-            let page = try await read { () async throws(APIError) in
+            let page = try await read { () async throws(RemoteDataSourceError) in
                 try await endpoints.listTasks(query, offset: offset, limit: Self.pageSize)
             }
             // Offsets shift while office staff edit, so the same task can show up on two pages.
@@ -35,22 +35,22 @@ public struct RemoteTaskAPI: TaskAPI {
         throw .invalidResponse("Pagination did not finish after \(Self.maxPages) pages")
     }
 
-    public func task(id: String) async throws(APIError) -> WorkTask {
-        try await read { () async throws(APIError) in try await endpoints.getTask(id: id) }
+    public func task(id: String) async throws(RemoteDataSourceError) -> WorkTask {
+        try await read { () async throws(RemoteDataSourceError) in try await endpoints.getTask(id: id) }
     }
 
     /// Actions are never retried: the API has no idempotency key, so a retry isn't safe.
     /// Callers reconcile by refetching.
-    public func complete(taskID: String) async throws(APIError) -> ActionReceipt {
+    public func complete(taskID: String) async throws(RemoteDataSourceError) -> ActionReceipt {
         try await endpoints.createAction(.complete(taskID: taskID))
     }
 
-    public func reschedule(taskID: String, to day: CalendarDay) async throws(APIError) -> ActionReceipt {
+    public func reschedule(taskID: String, to day: CalendarDay) async throws(RemoteDataSourceError) -> ActionReceipt {
         try await endpoints.createAction(.reschedule(taskID: taskID, day: day))
     }
 
     /// Reads get one retry on 429, waiting the server's `Retry-After` (or 1s if it's missing).
-    private func read<T>(_ operation: () async throws(APIError) -> T) async throws(APIError) -> T {
+    private func read<T>(_ operation: () async throws(RemoteDataSourceError) -> T) async throws(RemoteDataSourceError) -> T {
         do {
             return try await operation()
         } catch .rateLimited(let retryAfter) {

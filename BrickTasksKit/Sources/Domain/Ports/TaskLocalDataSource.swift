@@ -1,7 +1,7 @@
 import Foundation
 
 /// The local copy of tasks. The repository reads from it first and writes server data into it.
-public protocol TaskStore: Sendable {
+public protocol TaskLocalDataSource: Sendable {
     func tasks(on day: CalendarDay) async throws -> [WorkTask]
     func tasks(inWorkOrder workOrderID: String) async throws -> [WorkTask]
     func task(id: String) async throws -> WorkTask?

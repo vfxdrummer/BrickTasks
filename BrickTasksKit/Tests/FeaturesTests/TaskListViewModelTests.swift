@@ -45,7 +45,7 @@ struct TaskListViewModelTests {
 
     @Test func doneTasksAreSeparatedAndNeverOverdue() async throws {
         let h = try Harness(now: at("23:00"))
-        _ = try await h.api.complete(taskID: "wo_1_1")
+        _ = try await h.server.complete(taskID: "wo_1_1")
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
@@ -65,7 +65,7 @@ struct TaskListViewModelTests {
 
     @Test func offlineWithNothingSavedIsUnavailableWithReason() async throws {
         let h = try Harness(online: false)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .unavailable }
@@ -78,7 +78,7 @@ struct TaskListViewModelTests {
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
-            await h.api.setOffline(true)
+            await h.server.setOffline(true)
             h.connectivity.set(online: false)
             await eventually { vm.banner?.style == .offline }
             await vm.refresh()
@@ -91,7 +91,7 @@ struct TaskListViewModelTests {
     @Test func savedTasksShowOnRelaunchWhileOffline() async throws {
         let h = try Harness()
         _ = try await h.repository.refreshDay(today)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
         h.connectivity.set(online: false)
 
         let relaunched = h.list()
@@ -103,11 +103,11 @@ struct TaskListViewModelTests {
 
     @Test func comingBackOnlineRefreshesAutomatically() async throws {
         let h = try Harness(online: false)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .unavailable }
-            await h.api.setOffline(false)
+            await h.server.setOffline(false)
             h.connectivity.set(online: true)
             await eventually { vm.phase == .loaded }
             #expect(vm.banner == nil)
@@ -153,7 +153,7 @@ struct TaskListViewModelTests {
 
     @Test func expiredListSaysWhoToAsk() async throws {
         let h = try Harness()
-        await h.api.fail(.list, with: .before(.notFound(message: "Not found")))
+        await h.server.fail(.list, with: .before(.notFound(message: "Not found")))
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .unavailable }
@@ -166,7 +166,7 @@ struct TaskListViewModelTests {
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
-            await h.api.fail(.list, with: .before(.rateLimited(retryAfter: 1)))
+            await h.server.fail(.list, with: .before(.rateLimited(retryAfter: 1)))
             await vm.refresh()
             #expect(vm.phase == .loaded)
             #expect(vm.banner?.style == .error)
@@ -194,7 +194,7 @@ struct TaskListViewModelTests {
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
-            await h.api.fail(.reset, with: .before(.notConnected))
+            await h.server.fail(.reset, with: .before(.notConnected))
             await vm.resetSandbox()
             #expect(vm.banner?.style == .offline)
             #expect(vm.pending.count == 3)
@@ -228,7 +228,7 @@ struct CustomerFilterTests {
 
     @Test func selectingACustomerGroupsTheirTasksByWorkOrder() async throws {
         let h = try Harness(tasks: tasks())
-        _ = try await h.api.complete(taskID: "wo_1_1")
+        _ = try await h.server.complete(taskID: "wo_1_1")
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {
             await eventually { vm.phase == .loaded }
@@ -277,7 +277,7 @@ struct CustomerFilterTests {
     @Test func worksOfflineFromSavedTasks() async throws {
         let h = try Harness(tasks: tasks())
         _ = try await h.repository.refreshDay(today)
-        await h.api.setOffline(true)
+        await h.server.setOffline(true)
         h.connectivity.set(online: false)
         let vm = h.list()
         await running(vm, start: { await $0.start() }) {

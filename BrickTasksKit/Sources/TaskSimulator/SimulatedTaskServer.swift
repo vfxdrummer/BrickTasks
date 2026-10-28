@@ -1,10 +1,10 @@
 public import Domain
 public import Foundation
 
-/// An in-memory `TaskAPI` that enforces the real server's rules (sequencing, 409s, reschedule
+/// An in-memory `TaskRemoteDataSource` that enforces the real server's rules (sequencing, 409s, reschedule
 /// keeps time). Lets tests and UI-test launches script network failures, including an action
 /// that is applied on the server but whose response never arrives.
-public actor SimulatedTaskAPI: TaskAPI, SandboxReset {
+public actor SimulatedTaskServer: TaskRemoteDataSource, SandboxReset {
     public enum Operation: Hashable, Sendable {
         case list(TaskQuery)
         case get(String)
@@ -17,9 +17,9 @@ public actor SimulatedTaskAPI: TaskAPI, SandboxReset {
 
     public enum Failure: Hashable, Sendable {
         /// The request fails without reaching the server.
-        case before(APIError)
+        case before(RemoteDataSourceError)
         /// The server applies the request, then the response is lost.
-        case after(APIError)
+        case after(RemoteDataSourceError)
     }
 
     public private(set) var calls: [Operation] = []
@@ -59,9 +59,9 @@ public actor SimulatedTaskAPI: TaskAPI, SandboxReset {
 
     public func serverTask(id: String) -> WorkTask? { tasks[id] }
 
-    // MARK: TaskAPI
+    // MARK: TaskRemoteDataSource
 
-    public func tasks(matching query: TaskQuery) async throws(APIError) -> [WorkTask] {
+    public func tasks(matching query: TaskQuery) async throws(RemoteDataSourceError) -> [WorkTask] {
         calls.append(.list(query))
         return try perform(.list) {
             tasks.values
@@ -72,17 +72,17 @@ public actor SimulatedTaskAPI: TaskAPI, SandboxReset {
         }
     }
 
-    public func task(id: String) async throws(APIError) -> WorkTask {
+    public func task(id: String) async throws(RemoteDataSourceError) -> WorkTask {
         calls.append(.get(id))
-        return try perform(.get) { () throws(APIError) in
+        return try perform(.get) { () throws(RemoteDataSourceError) in
             guard let task = tasks[id] else { throw .notFound(message: "No such task") }
             return task
         }
     }
 
-    public func complete(taskID: String) async throws(APIError) -> ActionReceipt {
+    public func complete(taskID: String) async throws(RemoteDataSourceError) -> ActionReceipt {
         calls.append(.complete(taskID))
-        return try perform(.complete) { () throws(APIError) in
+        return try perform(.complete) { () throws(RemoteDataSourceError) in
             let task = try existing(taskID)
             guard task.canComplete else { throw .actionNotAllowed(message: refusal(for: task)) }
             store(task, status: .done, day: task.day)
@@ -90,9 +90,9 @@ public actor SimulatedTaskAPI: TaskAPI, SandboxReset {
         }
     }
 
-    public func reschedule(taskID: String, to day: CalendarDay) async throws(APIError) -> ActionReceipt {
+    public func reschedule(taskID: String, to day: CalendarDay) async throws(RemoteDataSourceError) -> ActionReceipt {
         calls.append(.reschedule(taskID, day))
-        return try perform(.reschedule) { () throws(APIError) in
+        return try perform(.reschedule) { () throws(RemoteDataSourceError) in
             let task = try existing(taskID)
             guard task.canReschedule else { throw .actionNotAllowed(message: refusal(for: task)) }
             store(task, status: task.status, day: day)
@@ -101,14 +101,14 @@ public actor SimulatedTaskAPI: TaskAPI, SandboxReset {
     }
 
     /// Like the real `/reset`: ids kept, dates and statuses back to their starting values.
-    public func resetSandbox() async throws(APIError) {
+    public func resetSandbox() async throws(RemoteDataSourceError) {
         calls.append(.reset)
         try perform(.reset) { tasks = initialTasks }
     }
 
     // MARK: Rules
 
-    private func perform<T>(_ kind: OperationKind, _ body: () throws(APIError) -> T) throws(APIError) -> T {
+    private func perform<T>(_ kind: OperationKind, _ body: () throws(RemoteDataSourceError) -> T) throws(RemoteDataSourceError) -> T {
         if offline { throw .notConnected }
         switch failures[kind]?.isEmpty == false ? failures[kind]!.removeFirst() : nil {
         case .before(let error):
@@ -121,7 +121,7 @@ public actor SimulatedTaskAPI: TaskAPI, SandboxReset {
         }
     }
 
-    private func existing(_ id: String) throws(APIError) -> WorkTask {
+    private func existing(_ id: String) throws(RemoteDataSourceError) -> WorkTask {
         guard let task = tasks[id] else { throw .notFound(message: "No such task") }
         return task
     }

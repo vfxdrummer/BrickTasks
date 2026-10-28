@@ -48,7 +48,7 @@ struct OpenAPITaskEndpointsTests {
 
     @Test func listRejectsUnknownStatusFilterWithoutCallingTheServer() async throws {
         StubURLProtocol.stub(.http(status: 200, body: try fixture("tasks_empty_page")))
-        await #expect(throws: APIError.badRequest(message: "Cannot filter by unknown status \"blocked\"")) {
+        await #expect(throws: RemoteDataSourceError.badRequest(message: "Cannot filter by unknown status \"blocked\"")) {
             try await makeEndpoints().listTasks(TaskQuery(status: .unknown("blocked")), offset: 0, limit: 50)
         }
         #expect(StubURLProtocol.lastRequest == nil)
@@ -92,7 +92,7 @@ struct OpenAPITaskEndpointsTests {
 
     @Test func resetOnExpiredSandboxIsNotFound() async throws {
         StubURLProtocol.stub(.http(status: 404, body: json(#"{"error":"not_found","message":"Not found"}"#)))
-        await #expect(throws: APIError.notFound(message: "Not found")) { try await makeEndpoints().resetSandbox() }
+        await #expect(throws: RemoteDataSourceError.notFound(message: "Not found")) { try await makeEndpoints().resetSandbox() }
     }
 
     // MARK: Responses
@@ -157,7 +157,7 @@ struct OpenAPITaskEndpointsTests {
         await #expect {
             try await makeEndpoints().getTask(id: "task_1")
         } throws: { error in
-            if case .invalidResponse = error as? APIError { true } else { false }
+            if case .invalidResponse = error as? RemoteDataSourceError { true } else { false }
         }
     }
 
@@ -166,7 +166,7 @@ struct OpenAPITaskEndpointsTests {
         await #expect {
             try await makeEndpoints().getTask(id: "task_1")
         } throws: { error in
-            if case .invalidResponse = error as? APIError { true } else { false }
+            if case .invalidResponse = error as? RemoteDataSourceError { true } else { false }
         }
     }
 
@@ -174,21 +174,21 @@ struct OpenAPITaskEndpointsTests {
 
     @Test func notFoundCarriesServerMessage() async throws {
         StubURLProtocol.stub(.http(status: 404, body: try fixture("error_not_found")))
-        await #expect(throws: APIError.notFound(message: "No such task")) {
+        await #expect(throws: RemoteDataSourceError.notFound(message: "No such task")) {
             try await makeEndpoints().getTask(id: "task_nope")
         }
     }
 
     @Test func conflictMapsToActionNotAllowed() async throws {
         StubURLProtocol.stub(.http(status: 409, body: json(#"{"error":"action_not_allowed","message":"pack cannot be completed until pick is done"}"#)))
-        await #expect(throws: APIError.actionNotAllowed(message: "pack cannot be completed until pick is done")) {
+        await #expect(throws: RemoteDataSourceError.actionNotAllowed(message: "pack cannot be completed until pick is done")) {
             try await makeEndpoints().createAction(.complete(taskID: "task_1"))
         }
     }
 
     @Test func badRequestCarriesServerMessage() async throws {
         StubURLProtocol.stub(.http(status: 400, body: json(#"{"error":"invalid_request","message":"Unknown query parameter: foo"}"#)))
-        await #expect(throws: APIError.badRequest(message: "Unknown query parameter: foo")) {
+        await #expect(throws: RemoteDataSourceError.badRequest(message: "Unknown query parameter: foo")) {
             try await makeEndpoints().listTasks(TaskQuery(), offset: 0, limit: 50)
         }
     }
@@ -199,21 +199,21 @@ struct OpenAPITaskEndpointsTests {
             headers: ["Content-Type": "application/json; charset=utf-8", "Retry-After": "1"],
             body: json(#"{"error":"rate_limited","message":"Too many requests"}"#)
         ))
-        await #expect(throws: APIError.rateLimited(retryAfter: 1)) {
+        await #expect(throws: RemoteDataSourceError.rateLimited(retryAfter: 1)) {
             try await makeEndpoints().listTasks(TaskQuery(), offset: 0, limit: 50)
         }
     }
 
     @Test func serverErrorWithJSONBody() async throws {
         StubURLProtocol.stub(.http(status: 503, body: json(#"{"error":"unavailable","message":"Try again"}"#)))
-        await #expect(throws: APIError.server(status: 503, message: "Try again")) {
+        await #expect(throws: RemoteDataSourceError.server(status: 503, message: "Try again")) {
             try await makeEndpoints().getTask(id: "task_1")
         }
     }
 
     @Test func serverErrorWithHTMLBodyFromTheCDN() async throws {
         StubURLProtocol.stub(.http(status: 502, headers: ["Content-Type": "text/html"], body: json("<html>Bad gateway</html>")))
-        await #expect(throws: APIError.server(status: 502, message: nil)) {
+        await #expect(throws: RemoteDataSourceError.server(status: 502, message: nil)) {
             try await makeEndpoints().getTask(id: "task_1")
         }
     }
@@ -221,7 +221,7 @@ struct OpenAPITaskEndpointsTests {
     @Test(arguments: [URLError.Code.notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dataNotAllowed])
     func failuresBeforeSendingAreNotConnected(_ code: URLError.Code) async {
         StubURLProtocol.stub(.failure(code))
-        await #expect(throws: APIError.notConnected) {
+        await #expect(throws: RemoteDataSourceError.notConnected) {
             try await makeEndpoints().createAction(.complete(taskID: "task_1"))
         }
     }
@@ -230,7 +230,7 @@ struct OpenAPITaskEndpointsTests {
     func failuresMidRequestAreInterrupted(_ code: URLError.Code) async {
         // For an action, this means "may have landed": the repository has to reconcile.
         StubURLProtocol.stub(.failure(code))
-        await #expect(throws: APIError.connectionInterrupted) {
+        await #expect(throws: RemoteDataSourceError.connectionInterrupted) {
             try await makeEndpoints().createAction(.complete(taskID: "task_1"))
         }
     }

@@ -3,7 +3,7 @@ internal import Foundation
 internal import OpenAPIRuntime
 
 enum ErrorMapper {
-    static func error(status: Int, body: Components.Schemas.APIError?) -> APIError {
+    static func error(status: Int, body: Components.Schemas.APIError?) -> RemoteDataSourceError {
         let message = body?.message ?? HTTPURLResponse.localizedString(forStatusCode: status)
         return switch status {
         case 400: .badRequest(message: message)
@@ -15,9 +15,9 @@ enum ErrorMapper {
     }
 
     /// Errors thrown by the generated client: transport failures and responses it couldn't decode.
-    static func error(from error: any Error) -> APIError {
+    static func error(from error: any Error) -> RemoteDataSourceError {
         switch error {
-        case let apiError as APIError:
+        case let apiError as RemoteDataSourceError:
             return apiError
         case let clientError as ClientError:
             // A response came back but didn't match the contract, e.g. an HTML 502 from the CDN.
@@ -38,7 +38,7 @@ enum ErrorMapper {
 
     /// Splits failures where the request certainly never reached the server from ones where it might
     /// have. The difference decides whether a failed action needs reconciling.
-    static func transport(_ error: URLError) -> APIError {
+    static func transport(_ error: URLError) -> RemoteDataSourceError {
         switch error.code {
         case .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
              .dataNotAllowed, .internationalRoamingOff, .callIsActive, .secureConnectionFailed:
