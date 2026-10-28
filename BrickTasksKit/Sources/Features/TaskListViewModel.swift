@@ -133,7 +133,7 @@ public final class TaskListViewModel: TaskListViewModeling {
                 return WorkOrderGroup(
                     id: steps[0].workOrder.id,
                     reference: steps[0].workOrder.reference,
-                    progress: "\(done) of \(steps.count) done today",
+                    progress: "\(done) of \(steps.count) done \(isShowingToday ? "today" : "on this day")",
                     rows: steps.map(row)
                 )
             }

@@ -266,6 +266,8 @@ struct CustomerFilterTests {
             #expect(vm.selectedCustomer == "Tidewell Apparel")
             #expect(vm.isFilteredEmpty)
             #expect(vm.customers == ["Halcyon Coffee"])
+            vm.select(customer: "Halcyon Coffee")
+            #expect(vm.workOrders.first?.progress == "0 of 3 done on this day")
             vm.select(customer: nil)
             #expect(!vm.isFilteredEmpty)
             #expect(vm.pending.count == 3)

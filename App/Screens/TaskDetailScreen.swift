@@ -95,7 +95,8 @@ struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { actions }
         // An overlay, not inline: content that jumps when a message appears or auto-hides
         // moves rows out from under the operator's finger.
-        .overlay(alignment: .bottom) {
+        // Top, and not hit-testable, so it never sits over the action buttons.
+        .overlay(alignment: .top) {
             if let confirmation = model.confirmation {
                 Label(confirmation, systemImage: "checkmark.circle.fill")
                     .font(.headline)
@@ -104,8 +105,9 @@ struct TaskDetailScreen<Model: TaskDetailViewModeling>: View {
                     .padding(.vertical, 14)
                     .background(.green, in: Capsule())
                     .shadow(radius: 6, y: 2)
-                    .padding(.bottom, 24)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.top, 8)
+                    .allowsHitTesting(false)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                     .accessibilityIdentifier("confirmation")
             }
         }
